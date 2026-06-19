@@ -4,6 +4,27 @@ Application desktop **Electron** (100 % locale) pour suivre tes hauts faits Fina
 gérer des priorités, une liste « focus », des notes/tags, et obtenir des suggestions de
 « à faire ensuite ». Synchronisation à la demande depuis le **Lodestone**.
 
+## Installation (Windows)
+
+L'app n'a pas de dépendance native : il suffit de l'installer une fois.
+
+1. Récupère le dépôt et installe les dépendances, puis génère l'installeur :
+   ```bash
+   git clone https://codeberg.org/tspinnewyn/achievment-tracker.git
+   cd achievment-tracker
+   npm install
+   npm run dist
+   ```
+2. Les artefacts apparaissent dans le dossier **`release/`** :
+   - `FFXIV Achievement Tracker Setup x.y.z.exe` — **installeur** (NSIS) : double-clique, choisis le
+     dossier d'installation, et l'app est ajoutée au menu Démarrer.
+   - `FFXIV Achievement Tracker x.y.z.exe` — version **portable** (aucune installation, lance le `.exe`).
+
+> Mise à jour de l'app : relance `git pull && npm install && npm run dist`, puis réinstalle avec le
+> nouvel installeur. Tes données (progression, priorités, notes…) sont conservées — elles vivent dans
+> `%APPDATA%\ffxiv-achievement-tracker\` (voir [Stockage local](#stockage-local)), pas dans le dossier
+> d'installation.
+
 ## Fonctionnalités
 
 - **Catalogue complet** des hauts faits (issu de XIVAPI v2, ~3900 entrées), mis en cache localement.
@@ -13,11 +34,15 @@ gérer des priorités, une liste « focus », des notes/tags, et obtenir des sug
   tri multi-critères, virtualisation (fluide sur des milliers de lignes).
 - **Priorités** (aucune / basse / moyenne / haute) et **liste Focus** réordonnable (glisser-déposer).
 - **Notes**, **tags** et **échéances** par haut fait (panneau de détail).
-- **Tableau de bord** : progression par type et par catégorie, points, derniers obtenus.
+- **Score de difficulté** : chaque haut fait reçoit un score (modèle additif borné : points + palier
+  Ultime/Sadique/Extrême + grind + défi + contexte + récence + saisonnier), affiché en badge, filtrable
+  et triable. Répartition et « plus durs encore à faire » sur le tableau de bord.
+- **Tableau de bord** : progression par type et par catégorie, points, derniers obtenus, difficulté.
 - **Suggestions** : moteur heuristique réglable (priorité, points, proximité de catégorie).
-- **Quotidiens & Hebdomadaires** : checklist de tâches récurrentes (dons tribaux, turn-ins…) avec
-  reset automatique (quotidien 15 h UTC = 17 h à Paris l'été ; hebdo mardi 8 h UTC = 10 h),
-  compte à rebours et alerte au lancement.
+- **Tâches récurrentes** : checklist avec reset automatique — quotidien (15 h UTC = 17 h Paris l'été),
+  hebdomadaire (mardi 8 h UTC = 10 h) et **missions de ravitaillement** de grande compagnie
+  (20 h UTC = 22 h Paris l'été). Compte à rebours, **séries (streaks)**, alerte au lancement et
+  **notifications planifiées à chaque reset**.
 
 ## Prérequis à la synchro Lodestone
 
@@ -36,6 +61,7 @@ gérer des priorités, une liste « focus », des notes/tags, et obtenir des sug
 npm install          # installe les dépendances
 npm run dev          # lance l'app en mode développement (HMR)
 npm run typecheck    # vérification TypeScript (main + renderer)
+npm test             # tests unitaires (Vitest : resets, difficulté, recherche)
 npm run build        # build de production (sans empaquetage)
 ```
 
