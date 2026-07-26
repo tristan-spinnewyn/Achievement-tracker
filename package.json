@@ -51,5 +51,12 @@
     "vite": "^7.3.5",
     "vitest": "^2.1.9",
     "zustand": "^5.0.14"
+  },
+  "allowScripts": {
+    "electron-winstaller@5.4.0": true,
+    "esbuild@0.25.12": true,
+    "esbuild@0.28.1": true,
+    "esbuild@0.21.5": true,
+    "esbuild@0.27.7": true
   }
 }
