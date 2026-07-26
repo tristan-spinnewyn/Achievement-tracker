@@ -126,9 +126,8 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('settings:update', (_e, partial: Partial<Settings>) => repo.updateSettings(partial))
 
   // Lodestone (synchro à la demande)
-  ipcMain.handle('lodestone:sync', (_e, force?: boolean) => syncLodestone(force))
+  ipcMain.handle('lodestone:sync', () => syncLodestone())
   ipcMain.handle('lodestone:syncLog', () => repo.getSyncLog())
-  ipcMain.handle('lodestone:isSyncNeeded', () => repo.isSyncNeeded())
 
   // Undo/Redo
   ipcMain.handle('history:undo', () => repo.undo())

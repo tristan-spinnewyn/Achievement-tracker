@@ -79,9 +79,8 @@ const api = {
       ipcRenderer.invoke('settings:update', partial)
   },
   lodestone: {
-    sync: (force?: boolean): Promise<SyncResult> => ipcRenderer.invoke('lodestone:sync', force),
-    syncLog: (): Promise<SyncLogEntry[]> => ipcRenderer.invoke('lodestone:syncLog'),
-    isSyncNeeded: (): Promise<boolean> => ipcRenderer.invoke('lodestone:isSyncNeeded')
+    sync: (): Promise<SyncResult> => ipcRenderer.invoke('lodestone:sync'),
+    syncLog: (): Promise<SyncLogEntry[]> => ipcRenderer.invoke('lodestone:syncLog')
   },
   suggestions: (weights?: SuggestionWeights): Promise<Suggestion[]> =>
     ipcRenderer.invoke('suggestions:get', weights),

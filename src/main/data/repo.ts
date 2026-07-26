@@ -21,7 +21,7 @@ import type {
   SyncLogEntry,
   UndoableAction
 } from '@shared/types'
-import { randomUUID, createHash } from 'crypto'
+import { randomUUID } from 'crypto'
 import { isDoneThisPeriod, periodStart, previousPeriodStart } from '@shared/resets'
 import { store, collKey } from './store'
 import { initSearchIndex, updateSearchIndex, evaluateAdvancedQuery } from '../utils/search'
@@ -222,36 +222,6 @@ export function countCompleted(): number {
     if (store.user.progress[id].completed) n++
   }
   return n
-}
-
-/**
- * Calcule un hash des hauts faits actuellement marqués comme obtenus.
- * Utilisé pour détecter les changements et éviter des syncs inutiles.
- */
-export function computeProgressHash(): string {
-  const progress = store.user.progress
-  const ids = Object.keys(progress).filter(id => progress[id].completed).sort()
-  const hash = createHash('sha256')
-  hash.update(ids.join(','))
-  return hash.digest('hex')
-}
-
-/**
- * Vérifie si une sync est nécessaire en comparant le hash actuel avec le hash stocké.
- */
-export function isSyncNeeded(): boolean {
-  const currentHash = computeProgressHash()
-  const storedHash = store.user.settings.syncHash
-  return !storedHash || currentHash !== storedHash
-}
-
-/**
- * Met à jour le hash de sync après une sync réussie.
- */
-export function updateSyncHash(): void {
-  const newHash = computeProgressHash()
-  store.user.settings.syncHash = newHash
-  store.saveUser()
 }
 
 export function getDashboard(): DashboardData {

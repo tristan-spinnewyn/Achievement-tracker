@@ -150,8 +150,6 @@ export interface Settings {
   autoSync: boolean
   /** Poids pour le moteur de suggestion. */
   suggestionWeights: SuggestionWeights
-  /** Hash des hauts faits obtenus pour la détection de changements (sync incrémentale). */
-  syncHash: string | null
 }
 
 export interface SyncResult {

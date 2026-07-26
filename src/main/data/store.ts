@@ -57,8 +57,7 @@ const DEFAULT_SETTINGS: Settings = {
   lastSyncAt: null,
   theme: 'dark',
   autoSync: false,
-  suggestionWeights: { priority: 3, points: 1, categoryProximity: 2 },
-  syncHash: null
+  suggestionWeights: { priority: 3, points: 1, categoryProximity: 2 }
 }
 
 function emptyCatalog(): CatalogData {

@@ -86,7 +86,7 @@ export async function scrapeAchievements(
 }
 
 /** Synchro à la demande : scrape, applique au store, journalise, met à jour lastSyncAt. */
-export async function syncLodestone(force: boolean = false): Promise<SyncResult> {
+export async function syncLodestone(): Promise<SyncResult> {
   const at = new Date().toISOString()
   const settings = repo.getSettings()
   const charId = settings.lodestoneCharacterId
@@ -99,13 +99,8 @@ export async function syncLodestone(force: boolean = false): Promise<SyncResult>
     return { ok: false, newlyCompleted: 0, totalCompleted: repo.countCompleted(), message, at }
   }
 
-  // Vérifier si une sync est nécessaire (sauf si forcée)
-  if (!force && !repo.isSyncNeeded()) {
-    const message = 'Déjà à jour — aucun changement détecté depuis la dernière synchronisation.'
-    repo.addSyncLog({ at, ok: true, newlyCompleted: 0, totalCompleted: repo.countCompleted(), message })
-    return { ok: true, newlyCompleted: 0, totalCompleted: repo.countCompleted(), message, at }
-  }
-
+  // On interroge toujours le Lodestone : impossible de savoir s'il y a de nouveaux
+  // hauts faits sans le lire. `newly` indique ce qui a réellement changé.
   try {
     const { items, pages } = await scrapeAchievements(charId, settings.region)
     if (items.length === 0) {
@@ -116,7 +111,6 @@ export async function syncLodestone(force: boolean = false): Promise<SyncResult>
     }
     const { newly, total } = repo.applyLodestoneCompletions(items)
     repo.updateSettings({ lastSyncAt: at })
-    repo.updateSyncHash()
     const message = `${items.length} hauts faits lus (${pages} page(s)) · ${newly} nouveau(x).`
     repo.addSyncLog({ at, ok: true, newlyCompleted: newly, totalCompleted: total, message })
     return { ok: true, newlyCompleted: newly, totalCompleted: total, message, at }
