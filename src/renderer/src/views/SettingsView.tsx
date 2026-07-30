@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { DifficultyLevel, Region, Settings, SyncLogEntry, SyncResult } from '@shared/types'
+import { SYNCABLE_COLLECTIONS } from '@shared/types'
 import { useStore } from '../store/useStore'
 
 const ctrl =
@@ -101,10 +102,13 @@ export default function SettingsView() {
     setResult(null)
     try {
       const r = await window.api.lodestone.sync()
+      for (const t of SYNCABLE_COLLECTIONS) await window.api.collections.sync(t)
       setResult(r)
       setSettings(await window.api.settings.get())
       await loadLog()
+      await loadCollStatus()
       await useStore.getState().init()
+      await useStore.getState().refreshCollectionPending()
     } finally {
       setSyncing(false)
     }
@@ -115,6 +119,7 @@ export default function SettingsView() {
     try {
       await window.api.catalog.refresh()
       await useStore.getState().init()
+      await refreshCollections()
     } finally {
       setRefreshing(false)
     }
@@ -167,9 +172,9 @@ export default function SettingsView() {
       <section className="mb-6 max-w-xl space-y-3 rounded border border-slate-800 bg-slate-950 p-4">
         <h3 className="font-semibold">Synchronisation Lodestone</h3>
         <p className="text-xs text-slate-500">
-          Rends tes hauts faits <b>publics</b> sur le Lodestone (Profil du personnage → Paramètres de
-          confidentialité), puis synchronise. Seuls les hauts faits <b>obtenus</b> sont récupérés (le
-          Lodestone n'expose pas la progression partielle).
+          Rends tes hauts faits et tes collections (montures, mascottes, émotes…) <b>publics</b> sur le
+          Lodestone (Profil du personnage → Paramètres de confidentialité), puis synchronise. Seuls les
+          éléments <b>obtenus</b> sont récupérés (le Lodestone n'expose pas la progression partielle).
         </p>
         <div className="grid grid-cols-2 gap-3">
           <label className="block text-sm text-slate-400">
@@ -202,7 +207,7 @@ export default function SettingsView() {
             disabled={syncing || !hasChar}
             className="rounded bg-emerald-600 px-3 py-1.5 text-sm font-medium hover:bg-emerald-500 disabled:opacity-50"
           >
-            {syncing ? 'Synchronisation… (~30 s)' : 'Synchroniser'}
+            {syncing ? 'Synchronisation… (~1 min)' : 'Synchroniser'}
           </button>
           <span className="text-xs text-slate-500">Dernière synchro : {fmt(settings.lastSyncAt)}</span>
         </div>
@@ -244,11 +249,14 @@ export default function SettingsView() {
         </p>
         <button
           onClick={refreshCatalog}
-          disabled={refreshing}
+          disabled={refreshing || collRefreshing}
           className="rounded bg-slate-700 px-3 py-1.5 text-sm hover:bg-slate-600 disabled:opacity-50"
         >
-          {refreshing ? 'Mise à jour…' : 'Mettre à jour depuis XIVAPI'}
+          {refreshing || collRefreshing ? 'Mise à jour… (~30 s)' : 'Mettre à jour depuis XIVAPI'}
         </button>
+        <p className="text-xs text-slate-500">
+          Met aussi à jour le catalogue des collections (montures, mascottes, émotes…) ci-dessous.
+        </p>
       </section>
 
       <section className="mt-6 max-w-xl space-y-3 rounded border border-slate-800 bg-slate-950 p-4">
