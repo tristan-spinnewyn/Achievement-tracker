@@ -3,7 +3,7 @@ import * as repo from '../data/repo'
 import { refreshCatalogFromXivapi } from '../services/catalog'
 import { syncLodestone } from '../services/lodestone'
 import { syncCollection, refreshCollectionsFromApi } from '../services/collections'
-import { exportUserData, importUserData } from '../services/backup'
+import { exportUserData, importUserData, getAutoBackupInfo, openDocumentsBackupFolder } from '../services/backup'
 import { getSuggestions } from '../services/suggestions'
 import { getIconUrl, prefetchIcons } from '../utils/icons'
 import { updateSearchIndex } from '../utils/search'
@@ -120,6 +120,8 @@ export function registerIpcHandlers(): void {
   // Sauvegarde / restauration
   ipcMain.handle('data:export', () => exportUserData())
   ipcMain.handle('data:import', () => importUserData())
+  ipcMain.handle('data:autoBackupInfo', () => getAutoBackupInfo())
+  ipcMain.handle('data:openDocumentsFolder', () => openDocumentsBackupFolder())
 
   // Paramètres
   ipcMain.handle('settings:get', () => repo.getSettings())

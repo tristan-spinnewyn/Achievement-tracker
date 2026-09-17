@@ -150,6 +150,17 @@ export interface Settings {
   autoSync: boolean
   /** Poids pour le moteur de suggestion. */
   suggestionWeights: SuggestionWeights
+  /** Sauvegarde automatique miroir dans Mes Documents à chaque modification. */
+  autoBackupDocuments?: boolean
+}
+
+export interface AutoBackupInfo {
+  enabled: boolean
+  path: string
+  folder: string
+  exists: boolean
+  lastSavedAt: string | null
+  sizeBytes: number | null
 }
 
 export interface SyncResult {

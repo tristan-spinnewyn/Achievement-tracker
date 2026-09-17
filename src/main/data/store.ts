@@ -57,7 +57,8 @@ const DEFAULT_SETTINGS: Settings = {
   lastSyncAt: null,
   theme: 'dark',
   autoSync: false,
-  suggestionWeights: { priority: 3, points: 1, categoryProximity: 2 }
+  suggestionWeights: { priority: 3, points: 1, categoryProximity: 2 },
+  autoBackupDocuments: true
 }
 
 function emptyCatalog(): CatalogData {
@@ -132,10 +133,34 @@ class Store {
     this.catalog = readJson(this.catalogPath, emptyCatalog())
     this.collections = readJson(this.collectionsPath, emptyCollections())
     const loaded = readJson<Partial<UserData>>(this.userPath, {})
+    let initialUser = loaded
+    const hasData =
+      Boolean(initialUser) &&
+      ((initialUser.progress && Object.keys(initialUser.progress).length > 0) ||
+        (initialUser.collections && Object.keys(initialUser.collections).length > 0) ||
+        (initialUser.recurringTasks && initialUser.recurringTasks.length > 0))
+
+    if (!hasData) {
+      // Si aucune donnée dans userData (nouveau PC ou réinstallation), vérifier si une sauvegarde existe dans Documents
+      try {
+        const docFolder = join(app.getPath('documents'), 'FFXIV Achievement Tracker')
+        const docPath = join(docFolder, 'userdata-backup.json')
+        if (existsSync(docPath)) {
+          const docData = JSON.parse(readFileSync(docPath, 'utf8')) as Partial<UserData>
+          if (docData && (docData.progress || docData.collections || docData.settings)) {
+            console.log(`[store] Restauration automatique depuis la sauvegarde Documents : ${docPath}`)
+            initialUser = docData
+          }
+        }
+      } catch (err) {
+        console.error('[store] Échec de lecture de la sauvegarde Documents :', err)
+      }
+    }
+
     this.user = {
       ...emptyUser(),
-      ...loaded,
-      settings: { ...DEFAULT_SETTINGS, ...(loaded.settings ?? {}) }
+      ...initialUser,
+      settings: { ...DEFAULT_SETTINGS, ...(initialUser.settings ?? {}) }
     }
     this.reindex()
   }
@@ -171,6 +196,20 @@ class Store {
 
   saveUser(): void {
     atomicWrite(this.userPath, JSON.stringify(this.user))
+    if (this.user.settings.autoBackupDocuments !== false) {
+      this.saveDocumentsBackup()
+    }
+  }
+
+  saveDocumentsBackup(): void {
+    try {
+      const docFolder = join(app.getPath('documents'), 'FFXIV Achievement Tracker')
+      mkdirSync(docFolder, { recursive: true })
+      const docPath = join(docFolder, 'userdata-backup.json')
+      atomicWrite(docPath, JSON.stringify(this.user, null, 2))
+    } catch (err) {
+      console.error('[store] Échec de la sauvegarde Documents :', err)
+    }
   }
 
   /** Remplace les données utilisateur (import de sauvegarde), en comblant les champs manquants. */

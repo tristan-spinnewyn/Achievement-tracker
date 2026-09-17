@@ -5,6 +5,7 @@ import type {
   AchievementFilter,
   AchievementKind,
   AchievementRow,
+  AutoBackupInfo,
   CatalogStatus,
   CollectionCategory,
   CollectionFilter,
@@ -65,7 +66,9 @@ const api = {
     export: (): Promise<{ ok: boolean; canceled?: boolean; path?: string; error?: string }> =>
       ipcRenderer.invoke('data:export'),
     import: (): Promise<{ ok: boolean; canceled?: boolean; path?: string; error?: string }> =>
-      ipcRenderer.invoke('data:import')
+      ipcRenderer.invoke('data:import'),
+    autoBackupInfo: (): Promise<AutoBackupInfo> => ipcRenderer.invoke('data:autoBackupInfo'),
+    openDocumentsFolder: (): Promise<string> => ipcRenderer.invoke('data:openDocumentsFolder')
   },
   history: {
     undo: (): Promise<boolean> => ipcRenderer.invoke('history:undo'),
