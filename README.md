@@ -10,8 +10,8 @@ L'app n'a pas de dépendance native : il suffit de l'installer une fois.
 
 1. Récupère le dépôt et installe les dépendances, puis génère l'installeur :
    ```bash
-   git clone https://codeberg.org/tspinnewyn/achievment-tracker.git
-   cd achievment-tracker
+   git clone https://github.com/tristan-spinnewyn/Achievment-tracker.git
+   cd Achievment-tracker
    npm install
    npm run dist
    ```
