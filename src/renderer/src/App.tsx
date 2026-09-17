@@ -133,6 +133,7 @@ function App() {
         {view === 'bardings' && <CollectionsView type="barding" />}
         {view === 'titles' && <CollectionsView type="title" />}
         {view === 'bluemagic' && <CollectionsView type="spell" />}
+        {view === 'beasts' && <CollectionsView type="beast" />}
         {view === 'tripletriad' && <CollectionsView type="tripletriad" />}
         {view === 'suggestions' && <SuggestionsView />}
         {view === 'settings' && <SettingsView />}

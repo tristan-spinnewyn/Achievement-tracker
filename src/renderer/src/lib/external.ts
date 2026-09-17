@@ -9,7 +9,8 @@ const COLLECT_PATH: Partial<Record<CollectionType, string>> = {
   hairstyle: 'hairstyles',
   barding: 'bardings',
   title: 'titles',
-  spell: 'spells'
+  spell: 'spells',
+  beast: 'beasts'
 }
 
 const wikiSearch = (name: string): string =>

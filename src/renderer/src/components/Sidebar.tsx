@@ -17,6 +17,7 @@ const items: { id: View; label: string; icon: string }[] = [
   { id: 'bardings', label: 'Bardes', icon: '🛡️' },
   { id: 'titles', label: 'Titres', icon: '🎖️' },
   { id: 'bluemagic', label: 'Magie bleue', icon: '🔵' },
+  { id: 'beasts', label: 'Bestiaire (Dresseur)', icon: '🦁' },
   { id: 'tripletriad', label: 'Triple Triade', icon: '🃏' },
   { id: 'suggestions', label: 'Suggestions', icon: '💡' },
   { id: 'settings', label: 'Paramètres', icon: '⚙️' }
@@ -41,6 +42,7 @@ export default function Sidebar() {
     titles: collectionPending.title,
     faceaccessories: collectionPending.faceaccessory,
     bluemagic: collectionPending.spell,
+    beasts: collectionPending.beast,
     tripletriad: collectionPending.tripletriad
   }
 

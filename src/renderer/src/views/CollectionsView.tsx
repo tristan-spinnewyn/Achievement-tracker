@@ -30,6 +30,7 @@ const LABELS: Record<CollectionType, { title: string; lead: string }> = {
   barding: { title: 'Bardes', lead: 'Suivi manuel. Coche ce que tu possèdes.' },
   title: { title: 'Titres', lead: 'Suivi manuel. Coche ce que tu possèdes.' },
   spell: { title: 'Magie bleue', lead: 'Suivi manuel. Coche les sorts appris.' },
+  beast: { title: 'Bestiaire de dresseur', lead: 'Suivi manuel. Coche les bêtes capturées.' },
   tripletriad: { title: 'Cartes de Triple Triade', lead: 'Suivi manuel. Coche les cartes obtenues.' }
 }
 

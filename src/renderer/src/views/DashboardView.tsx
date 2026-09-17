@@ -15,6 +15,7 @@ const COLLECTION_LABELS: Record<CollectionType, string> = {
   barding: 'Bardes',
   title: 'Titres',
   spell: 'Magie bleue',
+  beast: 'Bestiaire (Dresseur)',
   tripletriad: 'Triple Triade'
 }
 

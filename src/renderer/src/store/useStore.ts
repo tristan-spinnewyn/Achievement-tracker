@@ -29,6 +29,7 @@ export type View =
   | 'titles'
   | 'faceaccessories'
   | 'bluemagic'
+  | 'beasts'
   | 'tripletriad'
   | 'suggestions'
   | 'settings'
@@ -160,7 +161,8 @@ export const useStore = create<State>()((set, get) => ({
     title: 0,
     faceaccessory: 0,
     spell: 0,
-    tripletriad: 0
+    tripletriad: 0,
+    beast: 0
   },
 
   init: async () => {

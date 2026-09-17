@@ -260,6 +260,7 @@ export type CollectionType =
   | 'faceaccessory'
   | 'spell'
   | 'tripletriad'
+  | 'beast'
 
 /** Types synchronisables depuis le Lodestone. */
 export const SYNCABLE_COLLECTIONS: CollectionType[] = ['mount', 'minion', 'emote', 'faceaccessory']

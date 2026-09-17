@@ -49,8 +49,10 @@ function ttIconPath(rowId: number): string {
 interface CollectRow {
   id: number
   name?: string
+  description?: string
   patch?: string
   icon?: string
+  image?: string
   sources?: { type?: string; text?: string }[]
 }
 
@@ -369,9 +371,12 @@ export async function buildCollections(): Promise<BuiltCollections> {
   // Triple Triade : XIVAPI uniquement (pas dans FFXIV Collect).
   const tripleTriad = await buildTripleTriad()
 
+  // Bestiaire de dresseur : XIVAPI XBMPet + FFXIV Collect.
+  const beasts = await buildBeasts()
+
   return {
     gameVersion: mounts.version || minions.version || '',
-    categories: orch.categories,
+    categories: [...orch.categories, ...beasts.categories],
     items: [
       ...mounts.items,
       ...minions.items,
@@ -379,7 +384,78 @@ export async function buildCollections(): Promise<BuiltCollections> {
       ...orch.items,
       ...extra,
       ...spells,
-      ...tripleTriad
+      ...tripleTriad,
+      ...beasts.items
     ]
   }
+}
+
+const BEAST_CATEGORIES: CollectionCategory[] = [
+  { type: 'beast', id: 1, name: 'Thériens', order: 1 },
+  { type: 'beast', id: 2, name: 'Insectoïdes', order: 2 },
+  { type: 'beast', id: 3, name: 'Ptériens', order: 3 },
+  { type: 'beast', id: 4, name: 'Floréens', order: 4 },
+  { type: 'beast', id: 5, name: 'Hydrides', order: 5 },
+  { type: 'beast', id: 6, name: 'Cuirassiens', order: 6 },
+  { type: 'beast', id: 7, name: 'Animides', order: 7 },
+  { type: 'beast', id: 8, name: 'Nécroïdes', order: 8 }
+]
+
+/** Bestiaire du dresseur : 50 bêtes capturables (XIVAPI XBMPet + FFXIV Collect). */
+async function buildBeasts(): Promise<{ items: CollectionItem[]; categories: CollectionCategory[] }> {
+  const collect = await fetchCollect('beasts')
+  const xivapi = new Map<
+    number,
+    { name: string; description: string; categoryId: number; iconPath: string | null }
+  >()
+  try {
+    const { rows } = await fetchSheet('XBMPet', 'Pet.Name,Unknown0,Unknown3,Unknown7', 'fr')
+    for (const r of rows) {
+      if (r.row_id === 0) continue
+      const rawName = String(r.fields?.Pet?.fields?.Name ?? '').trim()
+      const desc = String(r.fields?.Unknown0 ?? '').trim()
+      const catId = Number(r.fields?.Unknown7 ?? 0)
+      const iconId = Number(r.fields?.Unknown3 ?? 0)
+      const folder = Math.floor(iconId / 1000) * 1000
+      const iconPath = iconId ? `ui/icon/${pad6(folder)}/${pad6(iconId)}_hr1.tex` : null
+      if (rawName) {
+        xivapi.set(r.row_id, {
+          name: cap(rawName),
+          description: desc,
+          categoryId: catId,
+          iconPath
+        })
+      }
+    }
+  } catch {
+    // Si XIVAPI indisponible, on s'appuiera sur FFXIV Collect
+  }
+
+  const items: CollectionItem[] = []
+  const allIds = new Set<number>([...xivapi.keys(), ...collect.keys()])
+  const sortedIds = [...allIds].sort((a, b) => a - b)
+
+  for (const id of sortedIds) {
+    const x = xivapi.get(id)
+    const c = collect.get(id)
+    const name = x?.name ?? c?.name ?? `Bête #${id}`
+    const description = x?.description ?? c?.description ?? ''
+    const iconPath = x?.iconPath ?? iconPathFromUrl(c?.image) ?? iconPathFromUrl(c?.icon)
+    const categoryId = x?.categoryId && x.categoryId > 0 ? x.categoryId : null
+
+    items.push({
+      type: 'beast',
+      id,
+      name,
+      description,
+      iconPath,
+      categoryId,
+      order: id,
+      patch: c?.patch ?? '7.56',
+      sources: sourcesOf(c),
+      aliases: []
+    })
+  }
+
+  return { items, categories: BEAST_CATEGORIES }
 }

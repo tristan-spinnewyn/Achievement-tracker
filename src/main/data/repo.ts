@@ -719,7 +719,8 @@ const ALL_COLLECTION_TYPES: CollectionType[] = [
   'title',
   'faceaccessory',
   'spell',
-  'tripletriad'
+  'tripletriad',
+  'beast'
 ]
 
 function emptyTypeRecord(): Record<CollectionType, number> {
