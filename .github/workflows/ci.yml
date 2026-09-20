@@ -1,0 +1,47 @@
+name: CI & Build Windows Exe
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  build-and-test:
+    name: Compile, Test & Build Windows .exe
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript typecheck
+        run: npm run typecheck
+
+      - name: Run unit tests (Vitest)
+        run: npm test
+
+      - name: Build and package Windows executable (.exe)
+        run: npm run dist -- --publish never
+
+      - name: Upload Windows Executable Artifacts (.exe)
+        uses: actions/upload-artifact@v4
+        with:
+          name: FFXIV-Achievement-Tracker-Windows
+          path: release/*.exe
+          if-no-files-found: error
+          retention-days: 14
