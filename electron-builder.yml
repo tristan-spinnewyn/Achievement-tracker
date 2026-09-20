@@ -28,13 +28,17 @@ win:
     - target: portable
       arch: [x64]
 nsis:
+  artifactName: "FFXIV-Achievement-Tracker-Setup-${version}.${ext}"
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
   deleteAppDataOnUninstall: false
+portable:
+  artifactName: "FFXIV-Achievement-Tracker-Portable-${version}.${ext}"
 linux:
   target:
     - target: AppImage
       arch: [x64]
+  artifactName: "FFXIV-Achievement-Tracker-${version}.${ext}"
   category: Game
   maintainer: shin
