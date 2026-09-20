@@ -10,6 +10,9 @@ updates:
       dependencies:
         patterns:
           - "*"
+        update-types:
+          - "minor"
+          - "patch"
 
   # Écosystème GitHub Actions pour les actions CI/CD
   - package-ecosystem: "github-actions"
