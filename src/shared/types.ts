@@ -347,3 +347,20 @@ export interface CollectionSyncResult {
   message: string
   at: string
 }
+
+export interface UpdateProgress {
+  percent: number
+  bytesPerSecond: number
+  transferred: number
+  total: number
+}
+
+export type UpdateStatus =
+  | { state: 'idle' }
+  | { state: 'checking' }
+  | { state: 'available'; version: string; releaseDate?: string; releaseNotes?: string | null }
+  | { state: 'not-available'; version: string }
+  | { state: 'downloading'; version: string; progress: UpdateProgress }
+  | { state: 'downloaded'; version: string }
+  | { state: 'error'; message: string }
+

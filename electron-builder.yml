@@ -3,6 +3,10 @@ productName: FFXIV Achievement Tracker
 directories:
   buildResources: build
   output: release
+publish:
+  provider: github
+  owner: tristan-spinnewyn
+  repo: Achievment-tracker
 files:
   - '!**/.vscode/*'
   - '!src/*'

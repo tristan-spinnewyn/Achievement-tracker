@@ -13,6 +13,7 @@ import CollectionsView from './views/CollectionsView'
 import NewPatchView from './views/NewPatchView'
 import DetailDrawer from './components/DetailDrawer'
 import LaunchAlert from './components/LaunchAlert'
+import UpdateBanner from './components/UpdateBanner'
 
 function App() {
   const view = useStore((s) => s.view)
@@ -140,6 +141,7 @@ function App() {
       </div>
       <DetailDrawer />
       <LaunchAlert />
+      <UpdateBanner />
     </div>
   )
 }
