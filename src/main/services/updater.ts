@@ -75,6 +75,16 @@ export function initUpdater(mainWindow: BrowserWindow): void {
   autoUpdater.autoInstallOnAppQuit = true
   autoUpdater.allowDowngrade = false
 
+  try {
+    autoUpdater.setFeedURL({
+      provider: 'github',
+      owner: 'tristan-spinnewyn',
+      repo: 'Achievment-tracker'
+    })
+  } catch {
+    // Ignorer si déjà configuré via app-update.yml
+  }
+
   autoUpdater.on('checking-for-update', () => {
     setStatus({ state: 'checking' })
   })
