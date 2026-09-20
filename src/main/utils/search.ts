@@ -3,7 +3,7 @@
  * Supporte les opérateurs AND, OR, NOT, les parenthèses et la recherche full-text.
  */
 
-import FlexSearch from 'flexsearch'
+import { Document } from 'flexsearch'
 import type { AchievementRow } from '@shared/types'
 import { store } from '../data/store'
 
@@ -14,16 +14,17 @@ interface IndexDoc {
   description: string
   category: string
   kind: string
+  [key: string]: string | number
 }
 
 // Index FlexSearch pour une recherche rapide
-let searchIndex: FlexSearch.Document<IndexDoc> | null = null
+let searchIndex: Document<IndexDoc> | null = null
 
 /**
  * Initialise (ou réinitialise) l'index de recherche.
  */
 export function initSearchIndex(): void {
-  const idx = new FlexSearch.Document<IndexDoc>({
+  const idx = new Document<IndexDoc>({
     document: {
       id: 'id',
       index: ['name', 'description', 'category', 'kind']
