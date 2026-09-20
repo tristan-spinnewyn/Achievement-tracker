@@ -1,0 +1,127 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag de la release (ex: v0.1.2). Laisser vide pour utiliser la version de package.json'
+        required: false
+        type: string
+      draft:
+        description: 'Créer en tant que brouillon (draft)'
+        required: false
+        type: boolean
+        default: false
+      prerelease:
+        description: 'Marquer comme pré-version (prerelease)'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows
+            build_args: '--win'
+            artifact_name: dist-windows
+          - os: ubuntu-latest
+            platform: linux
+            build_args: '--linux'
+            artifact_name: dist-linux
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.x
+          cache: 'npm'
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfuse2
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript typecheck
+        run: npm run typecheck
+
+      - name: Run unit tests (Vitest)
+        run: npm test
+
+      - name: Build and package executable
+        run: npm run dist -- ${{ matrix.build_args }} --publish never
+
+      - name: Upload binaries artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: |
+            release/*.exe
+            release/*.AppImage
+          if-no-files-found: error
+          retention-days: 2
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v7
+        with:
+          path: dist-artifacts
+          merge-multiple: true
+
+      - name: Determine tag and release name
+        id: release_info
+        run: |
+          if [ -n "${{ inputs.tag_name }}" ]; then
+            TAG="${{ inputs.tag_name }}"
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
+            TAG="${{ github.ref_name }}"
+          else
+            PKG_VERSION=$(node -p "require('./package.json').version")
+            TAG="v${PKG_VERSION}"
+          fi
+          echo "tag_name=$TAG" >> $GITHUB_OUTPUT
+          echo "Determined release tag: $TAG"
+
+      - name: Create or update GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ steps.release_info.outputs.tag_name }}
+          name: Release ${{ steps.release_info.outputs.tag_name }}
+          draft: ${{ inputs.draft || false }}
+          prerelease: ${{ inputs.prerelease || false }}
+          generate_release_notes: true
+          make_latest: "true"
+          files: |
+            dist-artifacts/*.exe
+            dist-artifacts/*.AppImage
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
