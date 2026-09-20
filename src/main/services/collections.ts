@@ -96,14 +96,18 @@ const LODESTONE_PATH: Partial<Record<CollectionType, string>> = {
 }
 
 function decodeEntities(s: string): string {
-  return s
-    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
-    .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCharCode(parseInt(n, 16)))
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
+  return s.replace(/&#(\d+);|&#x([0-9a-f]+);|&(quot|apos|amp|lt|gt);/gi, (m, dec, hex, named) => {
+    if (dec) return String.fromCharCode(Number(dec))
+    if (hex) return String.fromCharCode(parseInt(hex, 16))
+    switch ((named || '').toLowerCase()) {
+      case 'quot': return '"'
+      case 'apos': return "'"
+      case 'amp': return '&'
+      case 'lt': return '<'
+      case 'gt': return '>'
+      default: return m
+    }
+  })
 }
 
 async function fetchText(url: string): Promise<string> {

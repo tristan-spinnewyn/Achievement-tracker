@@ -132,8 +132,34 @@ function createWindow(): void {
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
+    try {
+      const parsedUrl = new URL(details.url)
+      if (parsedUrl.protocol === 'https:' || parsedUrl.protocol === 'http:') {
+        shell.openExternal(parsedUrl.href)
+      }
+    } catch {
+      // Ignorer les URLs invalides ou non autorisées
+    }
     return { action: 'deny' }
+  })
+
+  // Empêche la fenêtre Electron de naviguer vers un site externe inattendu
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    const isDev = !app.isPackaged && process.env['ELECTRON_RENDERER_URL']
+    const isLocal = isDev
+      ? url.startsWith(process.env['ELECTRON_RENDERER_URL']!)
+      : url.startsWith('file://')
+    if (!isLocal) {
+      event.preventDefault()
+      try {
+        const parsedUrl = new URL(url)
+        if (parsedUrl.protocol === 'https:' || parsedUrl.protocol === 'http:') {
+          shell.openExternal(parsedUrl.href)
+        }
+      } catch {
+        // Ignorer les URLs invalides
+      }
+    }
   })
 
   // electron-vite injecte ELECTRON_RENDERER_URL en dev (HMR).
