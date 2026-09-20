@@ -10,6 +10,7 @@ import { registerIpcHandlers } from './ipc/handlers'
 import { initSearchIndex } from './utils/search'
 import { prefetchIcons } from './utils/icons'
 import { calculateAllDifficulties } from './utils/difficulty'
+import { initUpdater } from './services/updater'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -129,6 +130,7 @@ function createWindow(): void {
 
   mainWindow.on('ready-to-show', () => {
     mainWindow!.show()
+    initUpdater(mainWindow!)
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {

@@ -106,7 +106,9 @@ jobs:
           path: |
             release/*.exe
             release/*.AppImage
-          if-no-files-found: error
+            release/latest*.yml
+            release/*.blockmap
+          if-no-files-found: warn
           retention-days: 2
 
   publish:
@@ -197,5 +199,7 @@ jobs:
           files: |
             dist-artifacts/*.exe
             dist-artifacts/*.AppImage
+            dist-artifacts/latest*.yml
+            dist-artifacts/*.blockmap
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

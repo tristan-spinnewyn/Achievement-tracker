@@ -23,7 +23,8 @@ import type {
   Suggestion,
   SuggestionWeights,
   SyncLogEntry,
-  SyncResult
+  SyncResult,
+  UpdateStatus
 } from '../shared/types'
 
 const api = {
@@ -163,6 +164,18 @@ const api = {
     const listener = (_event: Electron.IpcRendererEvent, view: string): void => callback(view)
     ipcRenderer.on('navigate-to', listener)
     return () => ipcRenderer.removeListener('navigate-to', listener)
+  },
+  updater: {
+    check: (): Promise<UpdateStatus> => ipcRenderer.invoke('updater:check'),
+    download: (): Promise<void> => ipcRenderer.invoke('updater:download'),
+    install: (): Promise<void> => ipcRenderer.invoke('updater:install'),
+    status: (): Promise<UpdateStatus> => ipcRenderer.invoke('updater:status'),
+    appVersion: (): Promise<string> => ipcRenderer.invoke('updater:appVersion'),
+    onStatusChange: (callback: (status: UpdateStatus) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, status: UpdateStatus): void => callback(status)
+      ipcRenderer.on('updater:status', listener)
+      return () => ipcRenderer.removeListener('updater:status', listener)
+    }
   }
 }
 

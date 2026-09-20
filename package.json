@@ -19,6 +19,7 @@
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "build:catalog": "tsx scripts/build-catalog.ts",
     "build:collections": "tsx scripts/build-collections.ts",
     "make:icon": "node scripts/make-icon.cjs",
@@ -26,6 +27,7 @@
     "dist:dir": "electron-vite build && electron-builder --dir"
   },
   "dependencies": {
+    "electron-updater": "^6.8.9",
     "flexsearch": "^0.8.212",
     "react-chartjs-2": "^5.2.0"
   },
@@ -40,6 +42,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
+    "@vitest/coverage-v8": "^5.0.1",
     "autoprefixer": "^10.6.1",
     "axios": "^1.20.0",
     "chart.js": "^4.4.3",

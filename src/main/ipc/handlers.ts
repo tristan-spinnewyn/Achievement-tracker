@@ -1,4 +1,5 @@
-import { ipcMain } from 'electron'
+import { ipcMain, app } from 'electron'
+import { checkForUpdates, downloadUpdate, getUpdaterStatus, quitAndInstall } from '../services/updater'
 import * as repo from '../data/repo'
 import { refreshCatalogFromXivapi } from '../services/catalog'
 import { syncLodestone } from '../services/lodestone'
@@ -179,4 +180,11 @@ export function registerIpcHandlers(): void {
     return true
   })
   ipcMain.handle('recurring:pending', () => repo.countPendingRecurring())
+
+  // Mises à jour de l'application
+  ipcMain.handle('updater:check', () => checkForUpdates())
+  ipcMain.handle('updater:download', () => downloadUpdate())
+  ipcMain.handle('updater:install', () => quitAndInstall())
+  ipcMain.handle('updater:status', () => getUpdaterStatus())
+  ipcMain.handle('updater:appVersion', () => app.getVersion())
 }
