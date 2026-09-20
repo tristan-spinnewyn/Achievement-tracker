@@ -70,6 +70,32 @@ jobs:
       - name: Run unit tests (Vitest)
         run: npm test
 
+      - name: Sync package.json version with release tag
+        env:
+          INPUT_TAG: ${{ inputs.tag_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          node -e "
+            const fs = require('fs');
+            const raw = process.env.INPUT_TAG || (process.env.REF_TYPE === 'tag' ? process.env.REF_NAME : '');
+            if (raw) {
+              const version = raw.replace(/^v/, '');
+              console.log('Syncing package.json version to:', version);
+              const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+              pkg.version = version;
+              fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+              if (fs.existsSync('package-lock.json')) {
+                const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+                lock.version = version;
+                if (lock.packages && lock.packages['']) {
+                  lock.packages[''].version = version;
+                }
+                fs.writeFileSync('package-lock.json', JSON.stringify(lock, null, 2) + '\n');
+              }
+            }
+          "
+
       - name: Build and package executable
         run: npm run dist -- ${{ matrix.build_args }} --publish never
 
@@ -102,17 +128,21 @@ jobs:
 
       - name: Determine tag and release name
         id: release_info
+        env:
+          INPUT_TAG: ${{ inputs.tag_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          if [ -n "${{ inputs.tag_name }}" ]; then
-            TAG="${{ inputs.tag_name }}"
-          elif [ "${{ github.ref_type }}" = "tag" ]; then
-            TAG="${{ github.ref_name }}"
-          else
-            PKG_VERSION=$(node -p "require('./package.json').version")
-            TAG="v${PKG_VERSION}"
-          fi
-          echo "tag_name=$TAG" >> $GITHUB_OUTPUT
-          echo "Determined release tag: $TAG"
+          node -e "
+            const fs = require('fs');
+            let tag = process.env.INPUT_TAG || (process.env.REF_TYPE === 'tag' ? process.env.REF_NAME : '');
+            if (!tag) {
+              const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+              tag = 'v' + pkg.version;
+            }
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, 'tag_name=' + tag + '\n');
+            console.log('Determined release tag:', tag);
+          "
 
       - name: Create or update GitHub Release
         uses: softprops/action-gh-release@v3
