@@ -27,7 +27,7 @@
     "dist:dir": "electron-vite build && electron-builder --dir"
   },
   "dependencies": {
-    "electron-updater": "^6.8.9",
+    "electron-updater": "^6.8.11",
     "flexsearch": "^0.8.212",
     "react-chartjs-2": "^5.2.0"
   },
@@ -37,28 +37,28 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@tailwindcss/postcss": "^4.3.3",
     "@tanstack/react-table": "^9.3.1",
-    "@tanstack/react-virtual": "^3.14.20",
+    "@tanstack/react-virtual": "^3.14.22",
     "@types/node": "^26.6.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
-    "@vitest/coverage-v8": "^5.0.4",
+    "@vitest/coverage-v8": "^5.0.5",
     "autoprefixer": "^10.6.1",
     "axios": "^1.20.0",
     "chart.js": "^4.4.3",
     "cheerio": "^1.2.0",
     "electron": "^45.0.0",
-    "electron-builder": "^26.15.3",
+    "electron-builder": "^26.18.0",
     "electron-vite": "^6.0.0",
-    "postcss": "^8.5.30",
+    "postcss": "^8.5.31",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
-    "vite": "^8.3.4",
+    "vite": "^8.3.5",
     "vitest": "^5.0.1",
-    "zustand": "^5.0.15"
+    "zustand": "^5.0.16"
   },
   "allowScripts": {
     "electron-winstaller@5.4.0": true,
