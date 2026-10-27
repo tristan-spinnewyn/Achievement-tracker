@@ -5,7 +5,8 @@ import type { CollectionSyncResult, CollectionType, CollectionsSnapshot, Region 
 import { store } from '../data/store'
 import * as repo from '../data/repo'
 import { buildCollections } from './collectionsCatalog'
-import { fetchTextWithRetry } from '../utils/fetch'
+import { fetchLodestoneText, lodestoneCharacterUrl } from './lodestone'
+import { mapLimit } from '../utils/concurrency'
 
 // --------------------------------------------------------------- Seed snapshot
 
@@ -80,11 +81,9 @@ export async function refreshCollectionsFromApi(): Promise<ReturnType<typeof rep
 
 // --------------------------------------------------------------- Lodestone scraping
 
-const HOSTS: Record<Region, string> = { na: 'na', eu: 'eu', fr: 'fr', de: 'de', ja: 'jp' }
-const UA =
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36'
 const CONCURRENCY = 8
 const FETCH_TIMEOUT_MS = 20000
+const XHR_HEADERS = { 'X-Requested-With': 'XMLHttpRequest' }
 const MAX_ITEMS = 1500
 
 // Only collections listed on the Lodestone can be synced.
@@ -110,37 +109,8 @@ function decodeEntities(s: string): string {
   })
 }
 
-async function fetchText(url: string): Promise<string> {
-  try {
-    const text = await fetchTextWithRetry(url, {
-      headers: { 'User-Agent': UA, 'X-Requested-With': 'XMLHttpRequest' }
-    }, 3, 1000, FETCH_TIMEOUT_MS)
-    // Check for 404 manually
-    if (text.includes('Character Not Found') || text.includes('Page Not Found')) {
-      throw new Error('Personnage introuvable (404). Vérifie l’ID Lodestone.')
-    }
-    return text
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('HTTP 404')) {
-      throw new Error('Personnage introuvable (404). Vérifie l’ID Lodestone.')
-    }
-    throw new Error(`Lodestone a répondu avec une erreur : ${error instanceof Error ? error.message : String(error)}`)
-  }
-}
-
-/** Runs `fn` over `items` with bounded concurrency. */
-async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
-  const results: R[] = new Array(items.length)
-  let i = 0
-  async function worker(): Promise<void> {
-    while (i < items.length) {
-      const idx = i++
-      results[idx] = await fn(items[idx])
-    }
-  }
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker))
-  return results
-}
+const fetchText = (url: string): Promise<string> =>
+  fetchLodestoneText(url, { headers: XHR_HEADERS, timeout: FETCH_TIMEOUT_MS })
 
 export interface ScrapeOutcome {
   names: string[]
@@ -160,8 +130,7 @@ async function scrapeCollectionNames(
 ): Promise<ScrapeOutcome> {
   const path = LODESTONE_PATH[type]
   if (!path) return { names: [], fetched: 0, cached: 0 }
-  const host = HOSTS[region] ?? 'na'
-  const base = `https://${host}.finalfantasyxiv.com/lodestone/character/${charId}`
+  const base = lodestoneCharacterUrl(region, charId)
   const html = await fetchText(`${base}/${path}/`)
 
   const re = new RegExp(`${path}/tooltip/([0-9a-f]+)`, 'g')
