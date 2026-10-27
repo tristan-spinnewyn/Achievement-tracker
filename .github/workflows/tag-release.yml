@@ -1,0 +1,48 @@
+name: Tag release
+
+# One-click release, step 2: when a push to main carries a package.json version
+# that has no tag yet (a release PR was merged), start the Release workflow,
+# which builds the binaries and creates the tag with the GitHub Release.
+on:
+  push:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  dispatch-release:
+    name: Dispatch release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: write # dispatch the Release workflow
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-tags: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.x
+
+      - name: Find the pending release tag
+        id: pending
+        run: node scripts/pending-release.mjs
+
+      # A tag pushed with GITHUB_TOKEN would not trigger release.yml: dispatch it
+      # instead, it creates the tag on the released commit.
+      - name: Dispatch the Release workflow
+        if: steps.pending.outputs.tag_name != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.pending.outputs.tag_name }}
+        run: gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref main -f tag_name="$TAG"
