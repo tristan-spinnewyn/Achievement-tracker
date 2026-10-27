@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: 'Release tag (e.g. v0.1.2). Leave empty to use the package.json version'
+        description: 'Release tag (e.g. v2.0.1), must match package.json. Leave empty to use the package.json version'
         required: false
         type: string
       draft:
@@ -76,31 +76,14 @@ jobs:
       - name: Run unit tests with coverage thresholds (Vitest)
         run: npm run test:coverage
 
-      - name: Sync package.json version with release tag
+      # package.json is the source of truth (bumped through a PR before tagging):
+      # fail fast if the tag disagrees, instead of building mismatched binaries.
+      - name: Check release tag matches package.json
         env:
-          INPUT_TAG: ${{ inputs.tag_name }}
-          REF_TYPE: ${{ github.ref_type }}
-          REF_NAME: ${{ github.ref_name }}
-        run: |
-          node -e "
-            const fs = require('fs');
-            const raw = process.env.INPUT_TAG || (process.env.REF_TYPE === 'tag' ? process.env.REF_NAME : '');
-            if (raw) {
-              const version = raw.replace(/^v/, '');
-              console.log('Syncing package.json version to:', version);
-              const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-              pkg.version = version;
-              fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-              if (fs.existsSync('package-lock.json')) {
-                const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
-                lock.version = version;
-                if (lock.packages && lock.packages['']) {
-                  lock.packages[''].version = version;
-                }
-                fs.writeFileSync('package-lock.json', JSON.stringify(lock, null, 2) + '\n');
-              }
-            }
-          "
+          # Explicit input, else the pushed tag, else empty (= use package.json).
+          RELEASE_TAG: ${{ inputs.tag_name || (github.ref_type == 'tag' && github.ref_name) || '' }}
+        run: node scripts/release-version.mjs "$RELEASE_TAG"
+        shell: bash
 
       - name: Build and package executable
         run: npm run dist -- ${{ matrix.build_args }} --publish never
@@ -123,17 +106,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
-      contents: write # push the version bump + create the release
+      contents: write # create the release
       id-token: write # OIDC to sign the provenance attestation (Sigstore)
       attestations: write
 
     steps:
-      # persist-credentials kept: this job pushes the version bump to the branch.
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.ref_type == 'branch' && github.ref_name || github.event.repository.default_branch || 'main' }}
-          fetch-depth: 0
+          persist-credentials: false
 
       - name: Download all build artifacts
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -160,58 +141,9 @@ jobs:
       - name: Determine tag and release name
         id: release_info
         env:
-          INPUT_TAG: ${{ inputs.tag_name }}
-          REF_TYPE: ${{ github.ref_type }}
-          REF_NAME: ${{ github.ref_name }}
-        run: |
-          node -e "
-            const fs = require('fs');
-            let tag = process.env.INPUT_TAG || (process.env.REF_TYPE === 'tag' ? process.env.REF_NAME : '');
-            if (!tag) {
-              const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-              tag = 'v' + pkg.version;
-            }
-            fs.appendFileSync(process.env.GITHUB_OUTPUT, 'tag_name=' + tag + '\n');
-            const cleanVersion = tag.replace(/^v/, '');
-            fs.appendFileSync(process.env.GITHUB_OUTPUT, 'clean_version=' + cleanVersion + '\n');
-            console.log('Determined release tag:', tag);
-            console.log('Determined clean version:', cleanVersion);
-          "
-
-      - name: Commit and push updated package.json to repository
-        env:
-          TARGET_BRANCH: ${{ github.ref_type == 'branch' && github.ref_name || github.event.repository.default_branch || 'main' }}
-          TARGET_VERSION: ${{ steps.release_info.outputs.clean_version }}
-        run: |
-          node -e "
-            const fs = require('fs');
-            const targetVersion = process.env.TARGET_VERSION;
-            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            if (pkg.version !== targetVersion) {
-              console.log('Updating package.json from', pkg.version, 'to', targetVersion);
-              pkg.version = targetVersion;
-              fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-              if (fs.existsSync('package-lock.json')) {
-                const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
-                lock.version = targetVersion;
-                if (lock.packages && lock.packages['']) {
-                  lock.packages[''].version = targetVersion;
-                }
-                fs.writeFileSync('package-lock.json', JSON.stringify(lock, null, 2) + '\n');
-              }
-            } else {
-              console.log('package.json is already at version', targetVersion);
-            }
-          "
-          if ! git diff --quiet package.json package-lock.json; then
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add package.json package-lock.json
-            git commit -m "chore(release): bump version to ${TARGET_VERSION} [skip ci]"
-            git pull --rebase origin "$TARGET_BRANCH"
-            git push origin "HEAD:$TARGET_BRANCH" || echo "Warning: Failed to push version bump to $TARGET_BRANCH."
-            echo "Version bump processed for $TARGET_BRANCH"
-          fi
+          # Explicit input, else the pushed tag, else empty (= use package.json).
+          RELEASE_TAG: ${{ inputs.tag_name || (github.ref_type == 'tag' && github.ref_name) || '' }}
+        run: node scripts/release-version.mjs "$RELEASE_TAG"
 
       - name: Create or update GitHub Release
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3

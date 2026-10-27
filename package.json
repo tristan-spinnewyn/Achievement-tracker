@@ -1,6 +1,6 @@
 {
   "name": "ffxiv-achievement-tracker",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "Suivi et gestion des hauts faits FFXIV (Electron, 100% local)",
   "main": "./out/main/index.js",
   "author": "shin",
