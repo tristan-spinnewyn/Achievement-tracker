@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import type { AchievementRow } from '@shared/types'
-import { parseAdvancedQuery, evaluateAdvancedQuery, initSearchIndex } from '../src/main/utils/search'
+import { parseAdvancedQuery, evaluateAdvancedQuery, initSearchIndex, updateSearchIndex, searchAchievements } from '../src/main/utils/search'
+import { store } from '../src/main/data/store'
 
 function row(partial: Partial<AchievementRow> = {}): AchievementRow {
   return {
@@ -96,5 +97,43 @@ describe('evaluateAdvancedQuery — logique booléenne (index initialisé)', () 
     const fn = evaluateAdvancedQuery('dragon not combat')
     expect(fn(row({ name: 'Dragon', categoryName: 'Exploration' }))).toBe(true)
     expect(fn(row({ name: 'Dragon', categoryName: 'Combat' }))).toBe(false)
+  })
+})
+
+describe('index FlexSearch peuplé', () => {
+  beforeAll(() => {
+    store.init()
+    store.catalog = {
+      generatedAt: null,
+      gameVersion: null,
+      kinds: [{ id: 1, name: 'Combat', order: 1 }],
+      categories: [{ id: 1, kindId: 1, name: 'Donjons', order: 1 }],
+      achievements: [
+        { id: 1, name: 'Tueur de dragons', description: 'Vaincre', points: 10, categoryId: 1, kindId: 1, iconPath: null, obtainable: true, patch: '7.0' },
+        { id: 2, name: 'Ami des chocobos', description: '', points: 5, categoryId: 9, kindId: 9, iconPath: null, obtainable: true, patch: '7.0' }
+      ]
+    }
+    store.reindex()
+    store.user.progress['1'] = { achievementId: 1, completed: true, completedDate: '2026-01-01', source: 'manual', updatedAt: '' }
+    store.user.userMeta['1'] = { achievementId: 1, priority: 2, inFocus: true, focusOrder: 0, note: 'n', deadline: null }
+    store.user.tagsByAchievement['1'] = ['t']
+    updateSearchIndex()
+  })
+
+  it('un terme unique passe par l’index (champ catégorie compris)', () => {
+    expect(searchAchievements('dragons').map((r) => r.id)).toEqual([1])
+    expect(searchAchievements('donjons').map((r) => r.id)).toEqual([1])
+  })
+
+  it('dénormalise progression et métadonnées dans les lignes', () => {
+    const [r] = searchAchievements('dragons')
+    expect(r).toMatchObject({ completed: true, completedDate: '2026-01-01', priority: 2, inFocus: true, note: 'n', tags: ['t'], categoryName: 'Donjons' })
+    const [c] = searchAchievements('chocobos')
+    expect(c).toMatchObject({ completed: false, categoryName: '', kindName: '', priority: 0, tags: [] })
+  })
+
+  it('requête multi-termes et requête vide', () => {
+    expect(searchAchievements('dragons or chocobos')).toHaveLength(2)
+    expect(searchAchievements('')).toHaveLength(2)
   })
 })

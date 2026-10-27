@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, afterEach } from 'vitest'
-import { extractCharacterId, scrapeAchievements } from '../src/main/services/lodestone'
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
+import { extractCharacterId, scrapeAchievements, syncLodestone } from '../src/main/services/lodestone'
+import { store } from '../src/main/data/store'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -54,5 +55,56 @@ describe('scrapeAchievements', () => {
     // 403 n'est pas réessayé et son corps vide ne contient pas d'entrées
     const { items } = await scrapeAchievements('42', 'eu')
     expect(items).toEqual([])
+  })
+})
+
+describe('syncLodestone', () => {
+  beforeEach(() => {
+    store.init()
+    store.replaceUser({ settings: { ...store.user.settings, autoBackupDocuments: false } })
+    store.catalog = {
+      generatedAt: null,
+      gameVersion: null,
+      kinds: [],
+      categories: [],
+      achievements: [1, 2].map((id) => ({ id, name: `HF ${id}`, description: '', points: 10, categoryId: 1, kindId: 1, iconPath: null, obtainable: true, patch: '7.0' }))
+    }
+    store.reindex()
+  })
+
+  it('exige un ID de personnage valide', async () => {
+    const res = await syncLodestone()
+    expect(res.ok).toBe(false)
+    expect(res.message).toContain('Aucun ID')
+    store.user.settings.lodestoneCharacterId = 'pas-un-id'
+    expect((await syncLodestone()).ok).toBe(false)
+    expect(store.user.syncLog).toHaveLength(2)
+  })
+
+  it('applique les hauts faits lus et met à jour lastSyncAt', async () => {
+    store.user.settings.lodestoneCharacterId = '42'
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(page([{ id: 1, ts: 1700000000 }, { id: 2 }], 1, 1))))
+    const res = await syncLodestone()
+    expect(res).toMatchObject({ ok: true, newlyCompleted: 2, totalCompleted: 2 })
+    expect(res.message).toBe('2 hauts faits lus (1 page(s)) · 2 nouveau(x).')
+    expect(store.user.settings.lastSyncAt).toBe(res.at)
+    expect(store.user.syncLog[0].ok).toBe(true)
+  })
+
+  it('signale une liste vide (hauts faits privés)', async () => {
+    store.user.settings.lodestoneCharacterId = '42'
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(page([], 1, 1))))
+    const res = await syncLodestone()
+    expect(res.ok).toBe(false)
+    expect(res.message).toContain('Aucun haut fait public')
+  })
+
+  it('journalise une erreur de scraping', async () => {
+    store.user.settings.lodestoneCharacterId = '42'
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('<h1>Character Not Found</h1>')))
+    const res = await syncLodestone()
+    expect(res.ok).toBe(false)
+    expect(res.message).toContain('introuvable')
+    expect(store.user.syncLog[0].message).toBe(res.message)
   })
 })

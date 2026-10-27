@@ -32,12 +32,11 @@ export default defineConfig({
       ],
       exclude: ['**/*.d.ts'],
       thresholds: {
-        // Cliquet global : planchers au niveau actuel, à relever à chaque gain
-        // (ne jamais les baisser). Cible : 80 % sur le périmètre ci-dessus.
-        lines: 50,
-        statements: 50,
-        branches: 50,
-        functions: 40,
+        // Plancher global : 80 % minimum sur le périmètre ci-dessus (ne jamais le baisser).
+        lines: 80,
+        statements: 80,
+        branches: 80,
+        functions: 80,
         // Modules critiques (sécurité / intégrité des données) : exigence forte.
         'src/main/ipc/trust.ts': { lines: 100, branches: 100 },
         'src/main/utils/icons.ts': { lines: 80, branches: 70 },
