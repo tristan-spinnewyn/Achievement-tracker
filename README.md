@@ -114,6 +114,19 @@ npm run dist:dir             # Unpacked application (release/win-unpacked/)
 npm run dist                 # NSIS installer + portable executable (release/)
 ```
 
+### Releasing
+
+`package.json` is the single source of truth for the version. `main` is protected, so the version is bumped through a pull request before tagging:
+
+```bash
+npm version <major|minor|patch> --no-git-tag-version   # bump package.json + package-lock.json
+# open a PR with the bump, merge it, then tag the merge commit:
+git tag -a vX.Y.Z -m "Release vX.Y.Z" origin/main
+git push origin vX.Y.Z
+```
+
+The tag triggers the release workflow, which fails early if the tag does not match `package.json`.
+
 ---
 
 ## 🏗️ Tech Stack
