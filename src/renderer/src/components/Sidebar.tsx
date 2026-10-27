@@ -59,7 +59,7 @@ export default function Sidebar() {
           <span className="text-emerald-400">Achievement Tracker</span>
         </h1>
       </div>
-      <nav className="flex-1 space-y-1 px-2">
+      <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-2 pb-2">
         {items.map((it) => (
           <button
             key={it.id}

@@ -69,6 +69,13 @@ describe('Sidebar', () => {
     render(<Sidebar />)
     expect(screen.queryByText(/hauts faits$/)).not.toBeInTheDocument()
   })
+
+  it('lets the navigation scroll when the window is too short for every item', () => {
+    useStore.setState({ catalogStatus: null, recurring: [], newPatchPending: 0, collectionPending: zeroPending })
+    render(<Sidebar />)
+    // A flex child only scrolls if it can shrink below its content height (min-h-0).
+    expect(screen.getByRole('navigation')).toHaveClass('min-h-0', 'overflow-y-auto')
+  })
 })
 
 describe('LaunchAlert', () => {
