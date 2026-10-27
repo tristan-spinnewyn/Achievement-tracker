@@ -8,7 +8,7 @@ vi.mock('electron', async (importOriginal) => ({
   ipcMain: { handle: (ch: string, fn: (event: unknown, ...args: unknown[]) => unknown) => ipc.handlers.set(ch, fn) }
 }))
 
-// Automocks : chaque export devient un vi.fn() — on vérifie le routage, pas la logique métier.
+// Automocks: every export becomes a vi.fn() — we check the routing, not the business logic.
 vi.mock('../src/main/data/repo')
 vi.mock('../src/main/services/catalog')
 vi.mock('../src/main/services/lodestone')
@@ -64,27 +64,27 @@ afterEach(() => {
   delete process.env['ELECTRON_RENDERER_URL']
 })
 
-describe('contrôle de l’émetteur IPC', () => {
-  it('refuse un émetteur non autorisé', () => {
+describe('IPC sender check', () => {
+  it('rejects an untrusted sender', () => {
     const fn = ipc.handlers.get('settings:get')!
-    expect(() => fn({ senderFrame: { url: 'https://evil.example/' } })).toThrow('IPC refusé')
-    expect(() => fn({})).toThrow('IPC refusé')
+    expect(() => fn({ senderFrame: { url: 'https://evil.example/' } })).toThrow('IPC rejected')
+    expect(() => fn({})).toThrow('IPC rejected')
     expect(repo.getSettings).not.toHaveBeenCalled()
   })
 
-  it('accepte le serveur Vite en dev, pas une fois packagé', () => {
+  it('accepts the Vite server in dev, but not once packaged', () => {
     process.env['ELECTRON_RENDERER_URL'] = 'http://localhost:5173'
     const fn = ipc.handlers.get('settings:get')!
     fn({ senderFrame: { url: 'http://localhost:5173/' } })
     expect(repo.getSettings).toHaveBeenCalledTimes(1)
 
     setMockPackaged(true)
-    expect(() => fn({ senderFrame: { url: 'http://localhost:5173/' } })).toThrow('IPC refusé')
+    expect(() => fn({ senderFrame: { url: 'http://localhost:5173/' } })).toThrow('IPC rejected')
   })
 })
 
-describe('routage des canaux', () => {
-  // [canal, arguments, fonction attendue, arguments attendus, valeur de retour attendue (optionnelle)]
+describe('channel routing', () => {
+  // [channel, arguments, expected function, expected arguments, expected return value (optional)]
   const cases: [string, unknown[], () => unknown, unknown[], unknown?][] = [
     ['catalog:status', [], () => repo.getCatalogStatus, []],
     ['achievements:list', [{ search: 'x' }], () => repo.listAchievements, [{ search: 'x' }]],
@@ -146,11 +146,11 @@ describe('routage des canaux', () => {
     if (expectedReturn !== undefined) expect(result).toBe(expectedReturn)
   })
 
-  it('updater:appVersion renvoie la version de l’app', () => {
+  it('updater:appVersion returns the app version', () => {
     expect(invoke('updater:appVersion')).toBe('1.0.1')
   })
 
-  it('catalog:refresh rafraîchit puis reconstruit l’index et les difficultés', async () => {
+  it('catalog:refresh refreshes then rebuilds the index and the difficulties', async () => {
     vi.mocked(repo.getSettings).mockReturnValue({ language: 'de' } as never)
     vi.mocked(catalog.refreshCatalogFromXivapi).mockResolvedValue({ seeded: true } as never)
     store.difficulties = new Map()
@@ -162,8 +162,8 @@ describe('routage des canaux', () => {
   })
 })
 
-describe('canaux de difficulté', () => {
-  it('recalcule puis expose les difficultés', () => {
+describe('difficulty channels', () => {
+  it('recomputes then exposes the difficulties', () => {
     expect(invoke('difficulty:recalculate')).toEqual({ success: true, count: 2 })
     expect(invoke('difficulty:get', 1)).toMatchObject({ level: expect.any(String) })
     const all = invoke('difficulty:all') as { id: number }[]

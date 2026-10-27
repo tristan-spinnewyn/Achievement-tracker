@@ -2,7 +2,7 @@ import { useStore } from '../store/useStore'
 import type { AchievementDifficulty } from '@shared/types'
 
 /**
- * Badge de difficulté pour un haut fait
+ * Difficulty badge for an achievement
  */
 export function DifficultyBadge({ achievementId }: { achievementId: number }) {
   const difficulties = useStore((s) => s.difficulties)

@@ -51,8 +51,8 @@ beforeEach(() => {
 
 afterEach(() => vi.unstubAllGlobals())
 
-describe('useStore : vue courante', () => {
-  it('restaure la dernière vue et la persiste', async () => {
+describe('useStore: current view', () => {
+  it('restores the last view and persists it', async () => {
     storage.set('ffxiv.lastView', 'focus')
     const { useStore } = await load()
     expect(useStore.getState().view).toBe('focus')
@@ -61,7 +61,7 @@ describe('useStore : vue courante', () => {
     expect(storage.get('ffxiv.lastView')).toBe('settings')
   })
 
-  it('retombe sur « achievements » et tolère un localStorage indisponible', async () => {
+  it('falls back to "achievements" and tolerates an unavailable localStorage', async () => {
     const { useStore: s1 } = await load()
     expect(s1.getState().view).toBe('achievements')
 
@@ -80,8 +80,8 @@ describe('useStore : vue courante', () => {
   })
 })
 
-describe('useStore : chargement', () => {
-  it('init charge toutes les données puis les lignes', async () => {
+describe('useStore: loading', () => {
+  it('init loads all data then the rows', async () => {
     const { useStore } = await load()
     await useStore.getState().init()
     const s = useStore.getState()
@@ -98,21 +98,21 @@ describe('useStore : chargement', () => {
     expect(s.error).toBeNull()
   })
 
-  it('init capture une erreur', async () => {
+  it('init captures an error', async () => {
     api.catalog.status.mockRejectedValueOnce(new Error('ipc down'))
     const { useStore } = await load()
     await useStore.getState().init()
     expect(useStore.getState().error).toContain('ipc down')
   })
 
-  it('loadRows gère l’état de chargement et les erreurs', async () => {
+  it('loadRows handles the loading state and errors', async () => {
     const { useStore } = await load()
     api.achievements.list.mockRejectedValueOnce(new Error('ko'))
     await useStore.getState().loadRows()
     expect(useStore.getState()).toMatchObject({ loading: false, error: 'Error: ko' })
   })
 
-  it('loadDifficulties remplit la map ou signale l’erreur', async () => {
+  it('loadDifficulties fills the map or reports the error', async () => {
     const { useStore } = await load()
     await useStore.getState().loadDifficulties()
     expect(useStore.getState().difficulties.size).toBe(1)
@@ -121,7 +121,7 @@ describe('useStore : chargement', () => {
     expect(useStore.getState().error).toBe('Error: ko')
   })
 
-  it('les rafraîchissements ciblés mettent à jour leur tranche', async () => {
+  it('targeted refreshes update their slice', async () => {
     const { useStore } = await load()
     const s = useStore.getState()
     await s.refreshStatus()
@@ -133,8 +133,8 @@ describe('useStore : chargement', () => {
   })
 })
 
-describe('useStore : filtres et sélection', () => {
-  it('setFilter fusionne et recharge ; resetFilter restaure le défaut', async () => {
+describe('useStore: filters and selection', () => {
+  it('setFilter merges and reloads; resetFilter restores the default', async () => {
     const { useStore, DEFAULT_FILTER } = await load()
     useStore.getState().setFilter({ search: 'chocobo' })
     expect(useStore.getState().filter).toEqual({ ...DEFAULT_FILTER, search: 'chocobo' })
@@ -143,15 +143,15 @@ describe('useStore : filtres et sélection', () => {
     expect(useStore.getState().filter).toEqual(DEFAULT_FILTER)
   })
 
-  it('select met à jour la sélection', async () => {
+  it('select updates the selection', async () => {
     const { useStore } = await load()
     useStore.getState().select(42)
     expect(useStore.getState().selectedId).toBe(42)
   })
 })
 
-describe('useStore : actions', () => {
-  it('toggleCompletion inverse puis rafraîchit lignes, statut, patch et récurrences', async () => {
+describe('useStore: actions', () => {
+  it('toggleCompletion inverts then refreshes rows, status, patch and recurring tasks', async () => {
     const { useStore } = await load()
     await useStore.getState().toggleCompletion({ id: 7, completed: false } as never)
     expect(api.achievements.setCompletion).toHaveBeenCalledWith(7, true)
@@ -167,20 +167,20 @@ describe('useStore : actions', () => {
     ['setNote', [1, 'note'], 'setNote'],
     ['setDeadline', [1, '2026-12-01'], 'setDeadline'],
     ['setTags', [1, ['x']], 'setTags']
-  ] as const)('%s appelle l’IPC puis recharge les lignes', async (action, args, ipc) => {
+  ] as const)('%s calls the IPC then reloads the rows', async (action, args, ipc) => {
     const { useStore } = await load()
     await (useStore.getState()[action] as (...a: unknown[]) => Promise<void>)(...args)
     expect(api.achievements[ipc]).toHaveBeenCalledWith(...args)
     expect(api.achievements.list).toHaveBeenCalled()
   })
 
-  it('setTags rafraîchit aussi la liste des tags', async () => {
+  it('setTags also refreshes the tag list', async () => {
     const { useStore } = await load()
     await useStore.getState().setTags(1, ['b'])
     expect(api.meta.tags).toHaveBeenCalled()
   })
 
-  it('les actions récurrentes rechargent la liste', async () => {
+  it('recurring actions reload the list', async () => {
     const { useStore } = await load()
     const s = useStore.getState()
     await s.addRecurring({ name: 'Roulette', type: 'daily' })

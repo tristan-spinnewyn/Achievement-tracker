@@ -3,13 +3,13 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 
 /**
- * Dossier « userData » propre à chaque worker Vitest : les fichiers de test
- * tournent en parallèle et ne doivent pas se disputer le même userdata.json.
+ * Per-Vitest-worker "userData" folder: test files run in parallel
+ * and must not fight over the same userdata.json.
  */
 export const TEST_USER_DATA = join(tmpdir(), `ffxiv-tracker-test-${process.env.VITEST_POOL_ID ?? '0'}-${process.pid}`)
 mkdirSync(TEST_USER_DATA, { recursive: true })
 
-/** Stub minimal d'Electron pour les tests Node (store.ts importe `app`). */
+/** Minimal Electron stub for Node tests (store.ts imports `app`). */
 let _isPackaged = false
 
 export const setMockPackaged = (val: boolean): void => {

@@ -6,7 +6,7 @@ import { iconUrl } from '../lib/icons'
 import { PRIORITY_DOT, PRIORITY_SHORT, PRIORITY_TEXT, nextPriority } from '../lib/priority'
 import { DifficultyBadge } from './DifficultyBadge'
 
-// check | nom (flex) | points | difficulté | patch | catégorie | priorité | focus | date
+// check | name (flex) | points | difficulty | patch | category | priority | focus | date
 const GRID = '40px minmax(0,1fr) 60px 150px 64px 120px 76px 40px 96px'
 const ROW_HEIGHT = 52
 
@@ -118,7 +118,7 @@ export default function AchievementsTable() {
                 </button>
 
                 <div className="font-mono text-amber-400">{r.points}</div>
-                {/* Difficulté */}
+                {/* Difficulty */}
                 <DifficultyBadge achievementId={r.id} />
                 <div className="font-mono text-xs text-slate-400">{r.patch ?? '—'}</div>
                 <div className="truncate text-slate-300">{r.categoryName}</div>

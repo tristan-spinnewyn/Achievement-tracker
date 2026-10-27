@@ -5,13 +5,13 @@ const APP = 'file:///C:/Program%20Files/App/resources/app.asar/out/renderer/inde
 const DEV = 'http://localhost:5173'
 
 describe('isTrustedSender', () => {
-  it("accepte la page de l'application (casse et hash/query indifférents)", () => {
+  it('accepts the application page (case and hash/query insensitive)', () => {
     expect(isTrustedSender(APP, APP)).toBe(true)
     expect(isTrustedSender(APP + '#/recurring', APP)).toBe(true)
     expect(isTrustedSender(APP.replace('Program%20Files', 'program files'), APP)).toBe(true)
   })
 
-  it('refuse toute autre page locale ou distante', () => {
+  it('rejects any other local or remote page', () => {
     expect(isTrustedSender('file:///C:/Users/me/Downloads/evil.html', APP)).toBe(false)
     expect(isTrustedSender('https://evil.example/', APP)).toBe(false)
     expect(isTrustedSender('about:blank', APP)).toBe(false)
@@ -20,7 +20,7 @@ describe('isTrustedSender', () => {
     expect(isTrustedSender('pas une url', APP)).toBe(false)
   })
 
-  it('accepte le serveur Vite uniquement quand il est fourni (dev)', () => {
+  it('accepts the Vite server only when provided (dev)', () => {
     expect(isTrustedSender(DEV + '/', APP, DEV)).toBe(true)
     expect(isTrustedSender(DEV + '/', APP)).toBe(false)
     expect(isTrustedSender('http://localhost:6666/', APP, DEV)).toBe(false)

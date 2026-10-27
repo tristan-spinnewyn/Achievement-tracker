@@ -11,7 +11,7 @@ type IconsModule = typeof import('../src/renderer/src/lib/icons')
 let icons: IconsModule
 
 beforeEach(async () => {
-  // Module rechargé à chaque test : le cache interne repart à vide.
+  // Module reloaded for each test: the internal cache starts empty.
   vi.resetModules()
   vi.stubGlobal('window', { api })
   api.icons.prefetch.mockClear()
@@ -21,8 +21,8 @@ beforeEach(async () => {
 
 afterEach(() => vi.unstubAllGlobals())
 
-describe('icônes (renderer)', () => {
-  it('iconUrl retombe sur les URLs distantes hors cache', () => {
+describe('icons (renderer)', () => {
+  it('iconUrl falls back to remote URLs when not cached', () => {
     expect(icons.iconUrl(null)).toBeNull()
     expect(icons.iconUrl('ui/icon/000001.tex')).toBe(
       'https://v2.xivapi.com/api/asset?path=ui%2Ficon%2F000001.tex&format=png'
@@ -31,7 +31,7 @@ describe('icônes (renderer)', () => {
     expect(icons.iconUrl('/i/000000/1.png')).toBe('https://xivapi.com/i/000000/1.png')
   })
 
-  it('iconUrlAsync résout via IPC une seule fois puis sert le cache', async () => {
+  it('iconUrlAsync resolves via IPC only once then serves the cache', async () => {
     expect(await icons.iconUrlAsync(null)).toBeNull()
     expect(await icons.iconUrlAsync('ui/a.tex')).toBe('file:///cache/ui/a.tex')
     expect(await icons.iconUrlAsync('ui/a.tex')).toBe('file:///cache/ui/a.tex')
@@ -39,7 +39,7 @@ describe('icônes (renderer)', () => {
     expect(icons.iconUrl('ui/a.tex')).toBe('file:///cache/ui/a.tex')
   })
 
-  it('prefetchIconUrls dédoublonne, ignore les null et remplit le cache', async () => {
+  it('prefetchIconUrls deduplicates, ignores nulls and fills the cache', async () => {
     await icons.prefetchIconUrls(['ui/a.tex', null, 'ui/a.tex', 'ui/b.tex'])
     expect(api.icons.prefetch).toHaveBeenCalledWith(['ui/a.tex', 'ui/b.tex'])
     expect(api.icons.getUrl).toHaveBeenCalledTimes(2)

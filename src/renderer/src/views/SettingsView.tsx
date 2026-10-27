@@ -6,7 +6,7 @@ import { useStore } from '../store/useStore'
 const ctrl =
   'mt-1 w-full rounded bg-slate-800 px-2 py-1.5 text-sm text-slate-200 outline-none focus:ring-1 focus:ring-emerald-500'
 
-/** Métadonnées d'affichage des niveaux de difficulté (alignées sur difficulty.ts). */
+/** Display metadata of difficulty levels (aligned with difficulty.ts). */
 const DIFFICULTY_LEVELS: { key: DifficultyLevel; label: string; color: string }[] = [
   { key: 'very_easy', label: 'Très facile', color: '#22c55e' },
   { key: 'easy', label: 'Facile', color: '#84cc16' },
@@ -16,7 +16,7 @@ const DIFFICULTY_LEVELS: { key: DifficultyLevel; label: string; color: string }[
   { key: 'extreme', label: 'Extrême', color: '#64748b' }
 ]
 
-/** Libellés des types de hauts faits (kindId) pour la vue des poids. */
+/** Labels of achievement kinds (kindId) for the weights view. */
 const KIND_LABELS: Record<number, string> = {
   0: 'Non classé',
   1: 'Combats',
@@ -458,7 +458,7 @@ export default function SettingsView() {
         </div>
       </section>
 
-      {/* Application & Mises à jour */}
+      {/* Application & updates */}
       <section className="rounded-lg border border-slate-800 bg-slate-900/50 p-4">
         <h3 className="text-base font-semibold text-slate-100 mb-2">Application & Mises à jour</h3>
         <p className="text-xs text-slate-400 mb-3">

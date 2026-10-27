@@ -15,12 +15,12 @@ const page = (entries: { id: number; ts?: number }[], current: number, total: nu
     .join('') + `<div>Page ${current} of ${total}</div>`
 
 describe('extractCharacterId', () => {
-  it('accepte un ID brut ou une URL Lodestone', () => {
+  it('accepts a raw ID or a Lodestone URL', () => {
     expect(extractCharacterId(' 12345 ')).toBe('12345')
     expect(extractCharacterId('https://eu.finalfantasyxiv.com/lodestone/character/987654/')).toBe('987654')
   })
 
-  it('refuse tout ce qui pourrait altérer l’URL construite', () => {
+  it('rejects anything that could alter the built URL', () => {
     expect(extractCharacterId('123/../../admin')).toBeNull()
     expect(extractCharacterId('abc')).toBeNull()
     expect(extractCharacterId('')).toBeNull()
@@ -28,7 +28,7 @@ describe('extractCharacterId', () => {
 })
 
 describe('scrapeAchievements', () => {
-  it('parcourt toutes les pages et extrait IDs et dates', async () => {
+  it('walks every page and extracts IDs and dates', async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(new Response(page([{ id: 1, ts: 1700000000 }, { id: 2 }], 1, 2)))
@@ -45,14 +45,14 @@ describe('scrapeAchievements', () => {
     expect(fetchMock.mock.calls[0][0]).toBe('https://fr.finalfantasyxiv.com/lodestone/character/42/achievement/?page=1')
   })
 
-  it('signale un personnage introuvable', async () => {
+  it('reports a missing character', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('<h1>Character Not Found</h1>')))
     await expect(scrapeAchievements('42', 'eu')).rejects.toThrow('introuvable')
   })
 
-  it('ne produit aucune entrée sur un statut HTTP non réessayable', async () => {
+  it('yields no entry on a non-retryable HTTP status', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('', { status: 403 })))
-    // 403 n'est pas réessayé et son corps vide ne contient pas d'entrées
+    // 403 is not retried and its empty body contains no entries
     const { items } = await scrapeAchievements('42', 'eu')
     expect(items).toEqual([])
   })
@@ -72,7 +72,7 @@ describe('syncLodestone', () => {
     store.reindex()
   })
 
-  it('exige un ID de personnage valide', async () => {
+  it('requires a valid character ID', async () => {
     const res = await syncLodestone()
     expect(res.ok).toBe(false)
     expect(res.message).toContain('Aucun ID')
@@ -81,7 +81,7 @@ describe('syncLodestone', () => {
     expect(store.user.syncLog).toHaveLength(2)
   })
 
-  it('applique les hauts faits lus et met à jour lastSyncAt', async () => {
+  it('applies the achievements read and updates lastSyncAt', async () => {
     store.user.settings.lodestoneCharacterId = '42'
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(page([{ id: 1, ts: 1700000000 }, { id: 2 }], 1, 1))))
     const res = await syncLodestone()
@@ -91,7 +91,7 @@ describe('syncLodestone', () => {
     expect(store.user.syncLog[0].ok).toBe(true)
   })
 
-  it('signale une liste vide (hauts faits privés)', async () => {
+  it('reports an empty list (private achievements)', async () => {
     store.user.settings.lodestoneCharacterId = '42'
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(page([], 1, 1))))
     const res = await syncLodestone()
@@ -99,7 +99,7 @@ describe('syncLodestone', () => {
     expect(res.message).toContain('Aucun haut fait public')
   })
 
-  it('journalise une erreur de scraping', async () => {
+  it('logs a scraping error', async () => {
     store.user.settings.lodestoneCharacterId = '42'
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('<h1>Character Not Found</h1>')))
     const res = await syncLodestone()

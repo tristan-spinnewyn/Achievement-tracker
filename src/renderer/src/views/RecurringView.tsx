@@ -57,7 +57,7 @@ export default function RecurringView() {
     return () => clearInterval(i)
   }, [])
 
-  // Autocomplétion : recherche de hauts faits non obtenus à lier.
+  // Autocomplete: search unobtained achievements to link.
   useEffect(() => {
     const q = query.trim()
     if (q.length < 2) {

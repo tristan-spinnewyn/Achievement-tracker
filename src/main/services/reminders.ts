@@ -1,9 +1,9 @@
 /**
- * Notifications planifiées aux resets FFXIV.
+ * Notifications scheduled at FFXIV resets.
  *
- * Pour chaque type récurrent, on programme un `setTimeout` jusqu'au prochain reset
- * (≤ 7 jours, sous la limite ~24,8 j de setTimeout) ; au déclenchement, on notifie
- * les tâches encore en attente puis on replanifie la période suivante.
+ * For each recurring type, a `setTimeout` is scheduled until the next reset
+ * (≤ 7 days, below setTimeout's ~24.8-day limit); when it fires, pending tasks
+ * are notified and the next period is scheduled.
  */
 import { app, Notification, type BrowserWindow } from 'electron'
 import { join } from 'path'
@@ -45,28 +45,28 @@ function notify(body: string): void {
 
 function scheduleType(entry: (typeof RESET_TYPES)[number]): void {
   const now = new Date()
-  // +1 s de marge pour être certain d'être passé la frontière du reset.
+  // +1 s margin to be sure we are past the reset boundary.
   const delay = Math.max(0, nextReset(entry.type, now).getTime() - now.getTime()) + 1000
 
   const timer = setTimeout(() => {
-    // Au reset, les tâches faites la période précédente redeviennent « à faire ».
+    // At reset, tasks done during the previous period become "to do" again.
     const pending = countPendingRecurring()
     const n = pending[entry.field]
     if (n > 0) notify(`Reset : ${n} tâche(s) ${entry.label} à refaire.`)
-    scheduleType(entry) // période suivante
+    scheduleType(entry) // next period
   }, delay)
 
   timers.set(entry.type, timer)
 }
 
-/** Démarre (ou redémarre) les rappels de reset. */
+/** Starts (or restarts) the reset reminders. */
 export function startResetReminders(windowGetter: () => BrowserWindow | null): void {
   stopResetReminders()
   getWindow = windowGetter
   for (const entry of RESET_TYPES) scheduleType(entry)
 }
 
-/** Annule tous les rappels planifiés. */
+/** Cancels every scheduled reminder. */
 export function stopResetReminders(): void {
   for (const timer of timers.values()) clearTimeout(timer)
   timers.clear()

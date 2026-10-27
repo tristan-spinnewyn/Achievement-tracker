@@ -34,8 +34,8 @@ afterEach(() => {
   delete (globalThis as { window?: unknown }).window
 })
 
-describe('preload : pont IPC', () => {
-  // [chemin dans l'api, arguments, canal attendu, payload attendu]
+describe('preload: IPC bridge', () => {
+  // [path in the api, arguments, expected channel, expected payload]
   const cases: [string, unknown[], string, unknown[]][] = [
     ['catalog.status', [], 'catalog:status', []],
     ['catalog.refresh', [], 'catalog:refresh', []],
@@ -108,12 +108,12 @@ describe('preload : pont IPC', () => {
     expect(h.invoke).toHaveBeenCalledWith(channel, ...payload)
   })
 
-  it('expose l’api via contextBridge quand le contexte est isolé', async () => {
+  it('exposes the api via contextBridge when the context is isolated', async () => {
     await loadPreload(true)
     expect(h.exposeInMainWorld).toHaveBeenCalledWith('api', expect.any(Object))
   })
 
-  it('journalise un échec d’exposition sans planter', async () => {
+  it('logs an exposure failure without crashing', async () => {
     const err = vi.spyOn(console, 'error').mockImplementation(() => {})
     h.exposeInMainWorld.mockImplementationOnce(() => {
       throw new Error('déjà exposé')
@@ -125,7 +125,7 @@ describe('preload : pont IPC', () => {
     err.mockRestore()
   })
 
-  it('retombe sur window.api sans isolation de contexte', async () => {
+  it('falls back to window.api without context isolation', async () => {
     ;(globalThis as { window?: unknown }).window = {}
     const api = await loadPreload(false)
     expect(api).toHaveProperty('catalog')
@@ -135,7 +135,7 @@ describe('preload : pont IPC', () => {
   it.each([
     ['onNavigate', 'navigate-to', 'recurring'],
     ['updater.onStatusChange', 'updater:status', { state: 'available' }]
-  ])('%s s’abonne et se désabonne de %s', async (path, channel, payload) => {
+  ])('%s subscribes to and unsubscribes from %s', async (path, channel, payload) => {
     const api = await loadPreload(true)
     const subscribe = path.split('.').reduce<unknown>((o, k) => (o as AnyApi)[k], api) as (
       cb: (v: unknown) => void

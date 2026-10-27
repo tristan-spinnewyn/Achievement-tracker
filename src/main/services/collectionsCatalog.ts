@@ -1,8 +1,8 @@
 /**
- * Construction du catalogue des collections (XIVAPI v2 + FFXIV Collect).
- * Module pur (aucune dépendance Electron, uniquement `fetch`) afin d'être utilisé
- * à la fois par le script `scripts/build-collections.ts` et par la mise à jour à chaud
- * du process principal — une seule source de vérité.
+ * Builds the collections catalog (XIVAPI v2 + FFXIV Collect).
+ * Pure module (no Electron dependency, only `fetch`) so it can be used
+ * both by the `scripts/build-collections.ts` script and by the main process
+ * hot update — a single source of truth.
  */
 import type {
   CollectionCategory,
@@ -16,7 +16,7 @@ const COLLECT = 'https://ffxivcollect.com/api'
 const PAGE = 500
 const ALIAS_LANGS: Language[] = ['en', 'de', 'ja']
 
-/** Normalise un nom pour le matching Lodestone (doit rester identique à repo.normalizeName). */
+/** Normalises a name for Lodestone matching (must stay identical to repo.normalizeName). */
 export function normalizeName(s: string): string {
   return s
     .normalize('NFD')
@@ -37,7 +37,7 @@ function iconPathFromUrl(url?: string | null): string | null {
 
 const pad6 = (n: number): string => String(n).padStart(6, '0')
 
-/** Chemin d'icône de l'art d'une carte de Triple Triade (icône 88000 + row_id). */
+/** Icon path of a Triple Triad card's art (icon 88000 + row_id). */
 function ttIconPath(rowId: number): string {
   const icon = 88000 + rowId
   const folder = Math.floor(icon / 1000) * 1000
@@ -64,7 +64,7 @@ async function fetchCollect(ep: string): Promise<Map<number, CollectRow>> {
     const data = (await res.json()) as { results?: CollectRow[] }
     for (const r of data.results ?? []) map.set(r.id, r)
   } catch {
-    // FFXIV Collect indisponible : on continue sans patch ni source
+    // FFXIV Collect unavailable: carry on without patch or sources
   }
   return map
 }
@@ -108,8 +108,8 @@ async function fetchSheet(
 // --------------------------------------------------------------- Builders
 
 /**
- * Collection dont l'ensemble est défini par une feuille XIVAPI, avec alias multi-langues
- * (synchronisable Lodestone). Patch / obtention via FFXIV Collect si `collectEp` est fourni.
+ * Collection whose set is defined by an XIVAPI sheet, with multi-language aliases
+ * (Lodestone-syncable). Patch / acquisition via FFXIV Collect when `collectEp` is given.
  */
 async function buildXivapiCollection(
   type: CollectionType,
@@ -117,7 +117,7 @@ async function buildXivapiCollection(
   nameField: string,
   opts: { collectEp?: string; hasOrder?: boolean; aliasFields?: string[] } = {}
 ): Promise<{ items: CollectionItem[]; version: string }> {
-  // Champs servant d'alias de matching (nom affiché + variantes, ex. la forme « Singular »).
+  // Fields used as matching aliases (display name + variants, e.g. the "Singular" form).
   const nameFields = [nameField, ...(opts.aliasFields ?? [])]
   const addAlias = (it: CollectionItem | undefined, raw: string): void => {
     if (!it || !raw) return
@@ -214,15 +214,15 @@ async function buildOrchestrion(): Promise<{ items: CollectionItem[]; categories
 interface CollectConfig {
   type: CollectionType
   collect: string
-  /** Feuille XIVAPI pour les noms FR (sinon noms FFXIV Collect en anglais). */
+  /** XIVAPI sheet for FR names (otherwise English names from FFXIV Collect). */
   xivapiSheet?: string
   nameField?: string
-  /** Construire des alias multi-langues (collection synchronisable). */
+  /** Build multi-language aliases (syncable collection). */
   aliasLangs?: boolean
   noIcon?: boolean
 }
 
-/** Collections dont l'ensemble est défini par FFXIV Collect (emotes, mode, coiffures…). */
+/** Collections whose set is defined by FFXIV Collect (emotes, fashion, hairstyles…). */
 async function buildCollectCollection(
   cfg: CollectConfig,
   frOverride?: Map<number, { name: string; iconPath: string | null }>
@@ -284,7 +284,7 @@ async function buildCollectCollection(
   return items
 }
 
-/** Noms FR + icônes des sorts de magie bleue (XIVAPI AozAction → Action). */
+/** FR names + icons of Blue Magic spells (XIVAPI AozAction → Action). */
 async function fetchAozNames(): Promise<Map<number, { name: string; iconPath: string | null }>> {
   const map = new Map<number, { name: string; iconPath: string | null }>()
   const { rows } = await fetchSheet('AozAction', 'Action.Name,Action.Icon', 'fr')
@@ -296,7 +296,7 @@ async function fetchAozNames(): Promise<Map<number, { name: string; iconPath: st
   return map
 }
 
-/** Cartes de Triple Triade (XIVAPI : nom FR, description, art de carte, obtention). */
+/** Triple Triad cards (XIVAPI: FR name, description, card art, acquisition). */
 async function buildTripleTriad(): Promise<CollectionItem[]> {
   const { rows } = await fetchSheet('TripleTriadCard', 'Name,Description', 'fr')
   const { rows: res } = await fetchSheet(
@@ -347,7 +347,7 @@ export interface BuiltCollections {
   items: CollectionItem[]
 }
 
-/** Construit l'intégralité du catalogue des collections. */
+/** Builds the whole collections catalog. */
 export async function buildCollections(): Promise<BuiltCollections> {
   const mounts = await buildXivapiCollection('mount', 'Mount', 'Singular', {
     collectEp: 'mounts',
@@ -364,14 +364,14 @@ export async function buildCollections(): Promise<BuiltCollections> {
   const extra: CollectionItem[] = []
   for (const cfg of COLLECT_CONFIGS) extra.push(...(await buildCollectCollection(cfg)))
 
-  // Magie bleue : ensemble FFXIV Collect + noms FR / icônes via AozAction.
+  // Blue Magic: FFXIV Collect set + FR names / icons via AozAction.
   const aoz = await fetchAozNames()
   const spells = await buildCollectCollection({ type: 'spell', collect: 'spells' }, aoz)
 
-  // Triple Triade : XIVAPI uniquement (pas dans FFXIV Collect).
+  // Triple Triad: XIVAPI only (not in FFXIV Collect).
   const tripleTriad = await buildTripleTriad()
 
-  // Bestiaire de dresseur : XIVAPI XBMPet + FFXIV Collect.
+  // Trainer's bestiary: XIVAPI XBMPet + FFXIV Collect.
   const beasts = await buildBeasts()
 
   return {
@@ -401,7 +401,7 @@ const BEAST_CATEGORIES: CollectionCategory[] = [
   { type: 'beast', id: 8, name: 'Nécroïdes', order: 8 }
 ]
 
-/** Bestiaire du dresseur : 50 bêtes capturables (XIVAPI XBMPet + FFXIV Collect). */
+/** Trainer's bestiary: 50 capturable beasts (XIVAPI XBMPet + FFXIV Collect). */
 async function buildBeasts(): Promise<{ items: CollectionItem[]; categories: CollectionCategory[] }> {
   const collect = await fetchCollect('beasts')
   const xivapi = new Map<
@@ -428,7 +428,7 @@ async function buildBeasts(): Promise<{ items: CollectionItem[]; categories: Col
       }
     }
   } catch {
-    // Si XIVAPI indisponible, on s'appuiera sur FFXIV Collect
+    // If XIVAPI is unavailable, rely on FFXIV Collect
   }
 
   const items: CollectionItem[] = []

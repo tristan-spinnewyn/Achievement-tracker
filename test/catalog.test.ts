@@ -54,21 +54,21 @@ afterEach(() => {
 })
 
 describe('loadSnapshotIntoStore', () => {
-  it('charge le snapshot embarqué dans le store', () => {
+  it('loads the bundled snapshot into the store', () => {
     writeSnapshot(snapshot('2026-01-01'))
     expect(loadSnapshotIntoStore()).toBe(true)
     expect(store.catalog.achievements).toHaveLength(2)
     expect(store.achievementById.get(1)?.name).toBe('HF 1')
   })
 
-  it('échoue proprement si le snapshot est absent ou corrompu', () => {
+  it('fails cleanly when the snapshot is missing or corrupted', () => {
     expect(loadSnapshotIntoStore()).toBe(false)
     writeSnapshot('{pas du json')
     expect(loadSnapshotIntoStore()).toBe(false)
     expect(console.error).toHaveBeenCalled()
   })
 
-  it('lit le snapshot depuis process.resourcesPath une fois packagé', () => {
+  it('reads the snapshot from process.resourcesPath once packaged', () => {
     setMockPackaged(true)
     ;(process as { resourcesPath?: string }).resourcesPath = appDir
     writeSnapshot(snapshot('2026-01-01'))
@@ -77,13 +77,13 @@ describe('loadSnapshotIntoStore', () => {
 })
 
 describe('seedCatalogIfEmpty', () => {
-  it('seed un catalogue vide', () => {
+  it('seeds an empty catalog', () => {
     writeSnapshot(snapshot('2026-01-01'))
     seedCatalogIfEmpty()
     expect(store.catalog.achievements).toHaveLength(2)
   })
 
-  it('remplace un catalogue plus ancien que le snapshot, pas un plus récent', () => {
+  it('replaces a catalog older than the snapshot, not a newer one', () => {
     writeSnapshot(snapshot('2026-01-01', 3))
     store.catalog = { ...snapshot('2025-01-01', 1) }
     seedCatalogIfEmpty()
@@ -94,19 +94,19 @@ describe('seedCatalogIfEmpty', () => {
     expect(store.catalog.achievements).toHaveLength(1)
   })
 
-  it('re-seed si la date stockée est absente', () => {
+  it('re-seeds when the stored date is missing', () => {
     writeSnapshot(snapshot('2026-01-01', 3))
     store.catalog = { ...snapshot('x', 1), generatedAt: null }
     seedCatalogIfEmpty()
     expect(store.catalog.achievements).toHaveLength(3)
   })
 
-  it('journalise sans planter si le snapshot est absent ou illisible', () => {
+  it('logs without crashing when the snapshot is missing or unreadable', () => {
     seedCatalogIfEmpty()
     expect(console.error).toHaveBeenCalledTimes(1)
 
     store.catalog = snapshot('2026-01-01', 1)
-    seedCatalogIfEmpty() // catalogue présent : pas d'erreur
+    seedCatalogIfEmpty() // catalog present: no error
     expect(console.error).toHaveBeenCalledTimes(1)
 
     writeSnapshot('{oops')
@@ -121,7 +121,7 @@ describe('refreshCatalogFromXivapi', () => {
     fields: { Name: `Cat ${id}`, Order: order, AchievementKind: { value: kindId, fields: { Name: `Kind ${kindId}`, Order: order } } }
   })
 
-  it('pagine XIVAPI, construit le catalogue et fusionne les patchs FFXIV Collect', async () => {
+  it('paginates XIVAPI, builds the catalog and merges FFXIV Collect patches', async () => {
     const pages = [
       {
         version: 'v7',
@@ -157,12 +157,12 @@ describe('refreshCatalogFromXivapi', () => {
     expect(store.achievementById.get(4)).toMatchObject({ categoryId: 0, kindId: 0, description: '', points: 0, iconPath: null, patch: null })
   })
 
-  it('lève une erreur sur un statut HTTP XIVAPI en échec', async () => {
+  it('throws on a failing XIVAPI HTTP status', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 503 })))
     await expect(refreshCatalogFromXivapi()).rejects.toThrow('XIVAPI HTTP 503')
   })
 
-  it('continue sans patchs si FFXIV Collect est indisponible', async () => {
+  it('carries on without patches when FFXIV Collect is unavailable', async () => {
     const pages = [{ rows: [{ row_id: 1, fields: { Name: 'A' } }] }, { rows: [] }]
     let collectCalls = 0
     vi.stubGlobal(
@@ -184,7 +184,7 @@ describe('refreshCatalogFromXivapi', () => {
     expect(store.achievementById.get(1)?.patch).toBeNull()
   })
 
-  it('stoppe la pagination après 50 pages (garde-fou)', async () => {
+  it('stops paginating after 50 pages (safety net)', async () => {
     let n = 0
     vi.stubGlobal(
       'fetch',

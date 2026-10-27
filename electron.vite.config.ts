@@ -4,15 +4,15 @@ import type { Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 
 /**
- * CSP de production, injectée en <meta> au build uniquement (en dev, Vite/HMR
- * a besoin de scripts inline). Tout est refusé par défaut puis autorisé au cas
- * par cas : seuls les scripts/styles empaquetés et les icônes XIVAPI sont permis.
+ * Production CSP, injected as a <meta> at build time only (in dev, Vite/HMR
+ * needs inline scripts). Everything is denied by default then allowed case
+ * by case: only bundled scripts/styles and XIVAPI icons are permitted.
  */
 const PROD_CSP = [
   "default-src 'none'",
   "script-src 'self'",
   "style-src 'self' 'unsafe-inline'",
-  // file: pour le cache local d'icônes (userData/icon-cache), XIVAPI en repli
+  // file: for the local icon cache (userData/icon-cache), XIVAPI as a fallback
   "img-src 'self' data: file: https://xivapi.com https://v2.xivapi.com",
   "font-src 'self' data:",
   "connect-src 'self'",

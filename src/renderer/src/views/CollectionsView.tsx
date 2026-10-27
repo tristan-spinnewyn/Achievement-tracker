@@ -112,7 +112,7 @@ export default function CollectionsView({ type }: { type: CollectionType }) {
   }, [type, search, status, categoryId, patch])
 
   const toggle = async (row: CollectionItemRow) => {
-    if (isLocked(row)) return // vérifié sur le Lodestone : décochage interdit
+    if (isLocked(row)) return // verified on the Lodestone: unchecking is not allowed
     const next = !row.owned
     await window.api.collections.setOwned(type, row.id, next)
     setProgress((p) => ({ ...p, owned: p.owned + (next ? 1 : -1) }))

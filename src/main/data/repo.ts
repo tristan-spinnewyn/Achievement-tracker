@@ -47,21 +47,21 @@ export function getCategories(): AchievementCategory[] {
   return store.catalog.categories.filter((c) => c.name.trim().length > 0)
 }
 
-/** Liste des patchs présents dans le catalogue, du plus récent au plus ancien. */
+/** Patches present in the catalog, from most recent to oldest. */
 export function getAchievementPatches(): string[] {
   const set = new Set<string>()
   for (const a of store.catalog.achievements) if (a.patch) set.add(a.patch)
   return [...set].sort((a, b) => patchSortKey(b) - patchSortKey(a))
 }
 
-/** Liste des événements saisonniers présents dans le catalogue. */
+/** Seasonal events present in the catalog. */
 export function getSeasonalEvents(): string[] {
   const set = new Set<string>()
   for (const a of store.catalog.achievements) if (a.seasonalEvent) set.add(a.seasonalEvent)
   return [...set].sort((a, b) => a.localeCompare(b, 'fr'))
 }
 
-/** Résumé du patch le plus récent (pour le badge « Nouveautés »). */
+/** Summary of the most recent patch (for the "New" badge). */
 export function getLatestPatchSummary(): { patch: string | null; pending: number; total: number } {
   const latest = getAchievementPatches()[0] ?? null
   if (!latest) return { patch: null, pending: 0, total: 0 }
@@ -122,8 +122,8 @@ function buildRow(a: Achievement): AchievementRow {
 
 function matches(row: AchievementRow, f: AchievementFilter): boolean {
   if (f.search) {
-    // Moteur de recherche avancée (import statique : pas de require dynamique,
-    // sinon le bundle du process principal ne résout plus le module à l'exécution).
+    // Advanced search engine (static import: no dynamic require,
+    // otherwise the main process bundle can no longer resolve the module at runtime).
     const searchFn = evaluateAdvancedQuery(f.search)
     if (!searchFn(row)) return false
   }
@@ -141,11 +141,11 @@ function matches(row: AchievementRow, f: AchievementFilter): boolean {
   if (f.tags && f.tags.length > 0) {
     for (const t of f.tags) if (!row.tags.includes(t)) return false
   }
-  // Filtres saisonniers
+  // Seasonal filters
   if (f.seasonalOnly && !row.isSeasonal) return false
   if (f.seasonalEvent != null && row.seasonalEvent !== f.seasonalEvent) return false
   
-  // Filtre par difficulté
+  // Difficulty filter
   if (f.difficultyLevel != null) {
     const difficulty = store.difficulties.get(row.id)
     if (!difficulty || difficulty.level !== f.difficultyLevel) return false
@@ -321,30 +321,30 @@ function ensureMeta(id: number) {
 const MAX_HISTORY = 50
 
 /**
- * Enregistre une action dans l'historique undo.
+ * Records an action in the undo history.
  */
 function pushUndoAction(action: UndoableAction): void {
-  // Limiter la taille de l'historique
+  // Cap the history size
   if (store.user.undoStack.length >= MAX_HISTORY) {
     store.user.undoStack.shift()
   }
   store.user.undoStack.push(action)
-  // Vider la pile redo lorsqu'une nouvelle action est effectuée
+  // Clear the redo stack when a new action is performed
   store.user.redoStack = []
   store.saveUser()
 }
 
 /**
- * Annule la dernière action.
+ * Undoes the last action.
  */
 export function undo(): boolean {
   const action = store.user.undoStack.pop()
   if (!action) return false
 
-  // Appliquer l'action inverse
+  // Apply the inverse action
   restoreActionState(action.previousData, action.achievementId)
   
-  // Ajouter à la pile redo
+  // Push onto the redo stack
   if (store.user.redoStack.length >= MAX_HISTORY) {
     store.user.redoStack.shift()
   }
@@ -355,16 +355,16 @@ export function undo(): boolean {
 }
 
 /**
- * Rétablit la dernière action annulée.
+ * Redoes the last undone action.
  */
 export function redo(): boolean {
   const action = store.user.redoStack.pop()
   if (!action) return false
 
-  // Appliquer l'action
+  // Apply the action
   restoreActionState(action.newData, action.achievementId)
   
-  // Ajouter à la pile undo
+  // Push onto the undo stack
   if (store.user.undoStack.length >= MAX_HISTORY) {
     store.user.undoStack.shift()
   }
@@ -375,26 +375,26 @@ export function redo(): boolean {
 }
 
 /**
- * Vérifie si une action peut être annulée.
+ * Checks whether an action can be undone.
  */
 export function canUndo(): boolean {
   return store.user.undoStack.length > 0
 }
 
 /**
- * Vérifie si une action peut être rétablie.
+ * Checks whether an action can be redone.
  */
 export function canRedo(): boolean {
   return store.user.redoStack.length > 0
 }
 
 /**
- * Restaure l'état d'un haut fait à partir de données.
+ * Restores an achievement's state from saved data.
  */
 function restoreActionState(data: Record<string, unknown>, achievementId: number): void {
   const id = String(achievementId)
   
-  // Restaurer la progression
+  // Restore progress
   if ('completed' in data) {
     const completed = data.completed as boolean | undefined
     if (completed === true) {
@@ -408,7 +408,7 @@ function restoreActionState(data: Record<string, unknown>, achievementId: number
     }
   }
   
-  // Restaurer les métadonnées
+  // Restore metadata
   if ('priority' in data) {
     ensureMeta(achievementId).priority = data.priority as Priority
   }
@@ -425,7 +425,7 @@ function restoreActionState(data: Record<string, unknown>, achievementId: number
     ensureMeta(achievementId).deadline = data.deadline as string | null
   }
   
-  // Restaurer les tags
+  // Restore tags
   if ('tags' in data) {
     const tags = data.tags as string[] | undefined
     if (tags && tags.length > 0) {
@@ -438,10 +438,10 @@ function restoreActionState(data: Record<string, unknown>, achievementId: number
 
 export function setManualCompletion(id: number, completed: boolean): void {
   const now = new Date().toISOString()
-  // Verrou : un haut fait obtenu via le Lodestone ne peut pas être décoché manuellement.
+  // Lock: an achievement obtained via the Lodestone cannot be unchecked manually.
   if (!completed && store.user.progress[id]?.source === 'lodestone') return
   
-  // Sauvegarder l'état actuel pour l'historique
+  // Save the current state for the history
   const previousData: Record<string, unknown> = {
     completed: store.user.progress[id]?.completed ?? false
   }
@@ -459,7 +459,7 @@ export function setManualCompletion(id: number, completed: boolean): void {
     delete store.user.progress[id]
   }
   
-  // Enregistrer l'action pour undo/redo
+  // Record the action for undo/redo
   pushUndoAction({
     type: 'setCompletion',
     achievementId: id,
@@ -471,7 +471,7 @@ export function setManualCompletion(id: number, completed: boolean): void {
   store.saveUser()
 }
 
-/** Lodestone ne liste que les hauts faits obtenus : on ajoute, on ne retire jamais. */
+/** The Lodestone only lists obtained achievements: we add, never remove. */
 export function applyLodestoneCompletions(
   items: { id: number; date: string | null }[]
 ): { newly: number; total: number } {
@@ -614,9 +614,9 @@ export function getSyncLog(): SyncLogEntry[] {
   return store.user.syncLog
 }
 
-// ---------------------------------------------------------------- Tâches récurrentes
+// ---------------------------------------------------------------- Recurring tasks
 
-/** Supprime les tâches liées à un haut fait désormais obtenu (auto-nettoyage). */
+/** Removes tasks linked to an achievement that is now obtained (auto-cleanup). */
 function pruneCompletedRecurring(): void {
   const before = store.user.recurringTasks.length
   store.user.recurringTasks = store.user.recurringTasks.filter(
@@ -664,8 +664,8 @@ export function setRecurringDone(id: string, done: boolean): void {
   const alreadyDone = isDoneThisPeriod(t.type, t.lastCompletedAt, now)
 
   if (done) {
-    if (alreadyDone) return // idempotent : déjà validé cette période
-    // Série continue si la validation précédente tombait dans la période juste avant.
+    if (alreadyDone) return // idempotent: already checked this period
+    // The streak continues if the previous check fell in the period just before.
     const prevStart = previousPeriodStart(t.type, now)
     const curStart = periodStart(t.type, now)
     const last = t.lastCompletedAt ? new Date(t.lastCompletedAt) : null
@@ -673,7 +673,7 @@ export function setRecurringDone(id: string, done: boolean): void {
     t.streak = continued ? (t.streak ?? 0) + 1 : 1
     t.lastCompletedAt = now.toISOString()
   } else {
-    if (!alreadyDone) return // rien à annuler pour cette période
+    if (!alreadyDone) return // nothing to undo for this period
     t.streak = Math.max(0, (t.streak ?? 0) - 1)
     t.lastCompletedAt = null
   }
@@ -683,7 +683,7 @@ export function setRecurringDone(id: string, done: boolean): void {
 
 // ---------------------------------------------------------------- Collections
 
-/** Normalise un nom pour le matching Lodestone (identique au script build-collections). */
+/** Normalises a name for Lodestone matching (identical to the build-collections script). */
 export function normalizeName(s: string): string {
   return s
     .normalize('NFD')
@@ -695,8 +695,8 @@ export function normalizeName(s: string): string {
 }
 
 /**
- * Clé de tri d'un patch (« 7.51 » -> 751, « 7.5 » -> 750, « 2.0 » -> 200).
- * Un seul chiffre après le point = dixièmes (×10). null/inconnu -> -1 (classé en dernier).
+ * Patch sort key ("7.51" -> 751, "7.5" -> 750, "2.0" -> 200).
+ * A single digit after the dot = tenths (×10). null/unknown -> -1 (sorted last).
  */
 export function patchSortKey(patch: string | null): number {
   if (!patch) return -1
@@ -743,7 +743,7 @@ export function getCollectionStatus(): {
   }
 }
 
-/** Patch le plus récent présent pour une collection donnée. */
+/** Most recent patch present for a given collection. */
 function getCollectionLatestPatch(type: CollectionType): string | null {
   let best: string | null = null
   let bestKey = -1
@@ -758,7 +758,7 @@ function getCollectionLatestPatch(type: CollectionType): string | null {
   return best
 }
 
-/** Nombre d'éléments du dernier patch non encore obtenus, par type (badges sidebar). */
+/** Number of items from the latest patch not yet obtained, per type (sidebar badges). */
 export function getCollectionPendingByType(): Record<CollectionType, number> {
   const result = emptyTypeRecord()
   for (const type of ALL_COLLECTION_TYPES) {
@@ -809,7 +809,7 @@ export function listCollection(filter: CollectionFilter): CollectionItemRow[] {
       continue
     rows.push(row)
   }
-  // Tri par patch le plus récent au plus ancien, puis ordre interne / nom.
+  // Sort by patch from most recent to oldest, then internal order / name.
   rows.sort(
     (a, b) =>
       patchSortKey(b.patch) - patchSortKey(a.patch) ||
@@ -819,7 +819,7 @@ export function listCollection(filter: CollectionFilter): CollectionItemRow[] {
   return rows
 }
 
-/** Progression (obtenu/total) de chaque collection, pour le tableau de bord. */
+/** Progress (owned/total) of each collection, for the dashboard. */
 export function getAllCollectionsProgress(): { type: CollectionType; owned: number; total: number }[] {
   const acc = new Map<CollectionType, { owned: number; total: number }>()
   for (const t of ALL_COLLECTION_TYPES) acc.set(t, { owned: 0, total: 0 })
@@ -831,7 +831,7 @@ export function getAllCollectionsProgress(): { type: CollectionType; owned: numb
   return ALL_COLLECTION_TYPES.map((type) => ({ type, ...acc.get(type)! }))
 }
 
-/** Patchs présents pour une collection donnée, du plus récent au plus ancien. */
+/** Patches present for a given collection, from most recent to oldest. */
 export function getCollectionPatches(type: CollectionType): string[] {
   const set = new Set<string>()
   for (const it of store.collections.items) if (it.type === type && it.patch) set.add(it.patch)
@@ -866,14 +866,14 @@ export function setCollectionOwned(type: CollectionType, id: number, owned: bool
 }
 
 /**
- * Applique une liste de noms scrappés du Lodestone à une collection.
- * On n'ajoute jamais de retrait (le Lodestone ne liste que le possédé).
+ * Applies a list of names scraped from the Lodestone to a collection.
+ * Never removes anything (the Lodestone only lists what is owned).
  */
 export function applyLodestoneCollection(
   type: CollectionType,
   names: string[]
 ): { matched: number; unmatched: number; newly: number } {
-  // Index alias normalisé -> id, construit à la volée.
+  // Normalised alias -> id index, built on the fly.
   const aliasToId = new Map<string, number>()
   for (const it of store.collections.items) {
     if (it.type !== type) continue
@@ -904,7 +904,7 @@ export function applyLodestoneCollection(
   return { matched, unmatched, newly }
 }
 
-// ---------------------------------------------------------------- Tâches récurrentes
+// ---------------------------------------------------------------- Recurring tasks
 
 export function countPendingRecurring(
   now: Date = new Date()

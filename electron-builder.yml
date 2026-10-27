@@ -16,15 +16,15 @@ files:
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
   - '!{tailwind.config.js,postcss.config.js}'
 asar: true
-# Durcissement du binaire Electron (https://www.electronjs.org/docs/latest/tutorial/fuses)
+# Electron binary hardening (https://www.electronjs.org/docs/latest/tutorial/fuses)
 electronFuses:
-  runAsNode: false # ELECTRON_RUN_AS_NODE ignoré : l'exe ne peut pas servir d'interpréteur Node
-  enableNodeOptionsEnvironmentVariable: false # NODE_OPTIONS / NODE_EXTRA_CA_CERTS ignorés
-  enableNodeCliInspectArguments: false # --inspect refusé (pas d'injection via débogueur)
-  enableEmbeddedAsarIntegrityValidation: true # app.asar vérifié au chargement
-  onlyLoadAppFromAsar: true # pas de dossier app/ substituable à côté de l'asar
+  runAsNode: false # ELECTRON_RUN_AS_NODE ignored: the exe cannot be used as a Node interpreter
+  enableNodeOptionsEnvironmentVariable: false # NODE_OPTIONS / NODE_EXTRA_CA_CERTS ignored
+  enableNodeCliInspectArguments: false # --inspect rejected (no injection through the debugger)
+  enableEmbeddedAsarIntegrityValidation: true # app.asar verified at load time
+  onlyLoadAppFromAsar: true # no substitutable app/ folder next to the asar
   enableCookieEncryption: true
-  grantFileProtocolExtraPrivileges: true # requis tant que le renderer est servi en file://
+  grantFileProtocolExtraPrivileges: true # required as long as the renderer is served over file://
 asarUnpack:
   - resources/**
 extraResources:

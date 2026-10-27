@@ -6,17 +6,17 @@ const LEGACY_KIND_ID = 13
 const PRIORITY_WORDS = ['', 'basse', 'moyenne', 'haute']
 
 /**
- * Heuristique « à faire ensuite » sur les hauts faits NON obtenus.
- * Le Lodestone n'expose pas la progression partielle, donc le score combine :
- *   - la priorité manuelle,
- *   - la valeur en points,
- *   - la proximité de complétion de la catégorie (finir ce qui est presque fini).
+ * "What to do next" heuristic over NOT obtained achievements.
+ * The Lodestone does not expose partial progress, so the score combines:
+ *   - the manual priority,
+ *   - the point value,
+ *   - how close the category is to completion (finish what is almost done).
  */
 export function getSuggestions(
   weights?: SuggestionWeights,
   limit = 40
 ): Suggestion[] {
-  // Utiliser les poids des paramètres utilisateur si non fournis
+  // Use the user's settings weights when none are given
   const actualWeights = weights ?? store.user.settings.suggestionWeights
   const catTotal = new Map<number, number>()
   const catDone = new Map<number, number>()

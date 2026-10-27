@@ -1,14 +1,14 @@
 /**
- * Validation de l'émetteur des messages IPC.
- * Seule la page de l'application (index.html empaqueté, ou le serveur Vite en dev)
- * a le droit d'appeler les canaux du main process : une page tierce chargée par
- * erreur (navigation, iframe…) ne doit pas pouvoir lire ou modifier les données.
+ * Validation of the IPC message sender.
+ * Only the application page (packaged index.html, or the Vite server in dev)
+ * may call the main process channels: a third-party page loaded by
+ * mistake (navigation, iframe…) must not be able to read or modify the data.
  */
 
 /**
- * @param senderUrl - URL de la frame émettrice (`event.senderFrame.url`)
- * @param appPageUrl - URL file:// attendue pour index.html en production
- * @param devServerUrl - URL du serveur Vite (ELECTRON_RENDERER_URL), uniquement en dev
+ * @param senderUrl - URL of the sending frame (`event.senderFrame.url`)
+ * @param appPageUrl - expected file:// URL of index.html in production
+ * @param devServerUrl - URL of the Vite server (ELECTRON_RENDERER_URL), dev only
  */
 export function isTrustedSender(
   senderUrl: string | null | undefined,
@@ -27,7 +27,7 @@ export function isTrustedSender(
     try {
       if (sender.origin === new URL(devServerUrl).origin) return true
     } catch {
-      // URL de dev invalide : on retombe sur la vérification de production
+      // Invalid dev URL: fall back to the production check
     }
   }
 

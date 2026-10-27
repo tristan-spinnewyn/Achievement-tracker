@@ -1,14 +1,14 @@
 version: 2
 updates:
-  # Écosystème npm pour les dépendances de l'application
+  # npm ecosystem for the app dependencies
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
-    # Délai avant de proposer une nouvelle version : laisse le temps à la communauté
-    # de détecter un paquet compromis (attaques type « shai-hulud »). Les mises à jour
-    # de sécurité (alertes Dependabot) ne sont pas concernées et arrivent immédiatement.
+    # Delay before proposing a new version: gives the community time
+    # to detect a compromised package ("shai-hulud"-style attacks). Security
+    # updates (Dependabot alerts) are not affected and arrive immediately.
     cooldown:
       default-days: 7
       semver-major-days: 14
@@ -20,7 +20,7 @@ updates:
           - "minor"
           - "patch"
 
-  # Écosystème GitHub Actions pour les actions CI/CD (épinglées par SHA)
+  # GitHub Actions ecosystem for CI/CD actions (pinned by SHA)
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

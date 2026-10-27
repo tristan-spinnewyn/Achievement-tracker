@@ -38,7 +38,7 @@ const makeWindow = (minimized = false) => ({
 
 beforeEach(() => {
   vi.useFakeTimers()
-  vi.setSystemTime(new Date('2026-10-27T12:00:00Z')) // mardi
+  vi.setSystemTime(new Date('2026-10-27T12:00:00Z')) // Tuesday
   h.instances.length = 0
   h.state.supported = true
   pending.value = { daily: 0, weekly: 0, daily22: 0 }
@@ -50,8 +50,8 @@ afterEach(() => {
   setMockPackaged(false)
 })
 
-describe('rappels de reset', () => {
-  it('notifie au reset quotidien (15h UTC) et ramène la fenêtre au clic', () => {
+describe('reset reminders', () => {
+  it('notifies at the daily reset (15:00 UTC) and brings the window back on click', () => {
     pending.value = { daily: 2, weekly: 0, daily22: 0 }
     const win = makeWindow(true)
     startResetReminders(() => win as never)
@@ -69,7 +69,7 @@ describe('rappels de reset', () => {
     expect(win.webContents.send).toHaveBeenCalledWith('navigate-to', 'recurring')
   })
 
-  it('replanifie la période suivante et ne notifie pas sans tâche en attente', () => {
+  it('schedules the next period and does not notify without pending tasks', () => {
     startResetReminders(() => null)
     vi.advanceTimersByTime(3 * 3600 * 1000 + 1000)
     expect(h.instances).toHaveLength(0)
@@ -77,10 +77,10 @@ describe('rappels de reset', () => {
     pending.value = { daily: 1, weekly: 0, daily22: 0 }
     vi.advanceTimersByTime(24 * 3600 * 1000)
     expect(h.instances).toHaveLength(1)
-    h.instances[0].handlers.click() // pas de fenêtre : aucune erreur
+    h.instances[0].handlers.click() // no window: no error
   })
 
-  it("n'affiche rien si les notifications ne sont pas supportées", () => {
+  it('shows nothing when notifications are not supported', () => {
     h.state.supported = false
     pending.value = { daily: 1, weekly: 1, daily22: 1 }
     startResetReminders(() => null)
@@ -88,7 +88,7 @@ describe('rappels de reset', () => {
     expect(h.instances).toHaveLength(0)
   })
 
-  it('utilise le chemin d’icône des ressources une fois packagé et ne restaure pas une fenêtre visible', () => {
+  it('uses the resources icon path once packaged and does not restore a visible window', () => {
     setMockPackaged(true)
     ;(process as { resourcesPath?: string }).resourcesPath = '/res'
     pending.value = { daily: 0, weekly: 3, daily22: 0 }
@@ -101,7 +101,7 @@ describe('rappels de reset', () => {
     expect(win.restore).not.toHaveBeenCalled()
   })
 
-  it('stopResetReminders annule tout', () => {
+  it('stopResetReminders cancels everything', () => {
     pending.value = { daily: 1, weekly: 1, daily22: 1 }
     startResetReminders(() => null)
     stopResetReminders()

@@ -70,8 +70,8 @@ afterEach(() => {
   rmSync(appDir, { recursive: true, force: true })
 })
 
-describe('snapshot des collections', () => {
-  it('loadCollectionsSnapshot charge, ou échoue proprement', () => {
+describe('collections snapshot', () => {
+  it('loadCollectionsSnapshot loads, or fails cleanly', () => {
     expect(loadCollectionsSnapshot()).toBe(false)
     writeSnapshot('{bad')
     expect(loadCollectionsSnapshot()).toBe(false)
@@ -80,14 +80,14 @@ describe('snapshot des collections', () => {
     expect(store.collections.items).toHaveLength(2)
   })
 
-  it('lit depuis resourcesPath une fois packagé', () => {
+  it('reads from resourcesPath once packaged', () => {
     setMockPackaged(true)
     ;(process as { resourcesPath?: string }).resourcesPath = appDir
     writeSnapshot(snapshot('2026-01-01'))
     expect(loadCollectionsSnapshot()).toBe(true)
   })
 
-  it('seedCollectionsIfEmpty ne remplace que par un snapshot plus récent', () => {
+  it('seedCollectionsIfEmpty only replaces with a newer snapshot', () => {
     seedCollectionsIfEmpty()
     expect(console.error).toHaveBeenCalledTimes(1)
 
@@ -104,9 +104,9 @@ describe('snapshot des collections', () => {
     expect(store.collections.items).toHaveLength(3)
   })
 
-  it('seedCollectionsIfEmpty journalise un snapshot illisible ou absent avec cache rempli', () => {
+  it('seedCollectionsIfEmpty logs an unreadable snapshot, or a missing one with a filled cache', () => {
     store.collections = snapshot('2026-01-01', 1)
-    seedCollectionsIfEmpty() // absent mais cache présent : silencieux
+    seedCollectionsIfEmpty() // missing but cache present: silent
     expect(console.error).not.toHaveBeenCalled()
     writeSnapshot('{bad')
     seedCollectionsIfEmpty()
@@ -115,7 +115,7 @@ describe('snapshot des collections', () => {
 })
 
 describe('refreshCollectionsFromApi', () => {
-  it('remplace le catalogue sans toucher aux possessions', async () => {
+  it('replaces the catalog without touching ownership', async () => {
     store.user.collections['mount:1'] = { owned: true, ownedDate: null, source: 'manual', updatedAt: '' }
     built.fn.mockResolvedValue({ gameVersion: '7.4', categories: [], items: [item(1), item(2), item(3)] })
     const status = await refreshCollectionsFromApi()
@@ -125,7 +125,7 @@ describe('refreshCollectionsFromApi', () => {
     expect(store.user.collections['mount:1'].owned).toBe(true)
   })
 
-  it('retombe sur la version du catalogue des hauts faits', async () => {
+  it('falls back to the achievements catalog version', async () => {
     store.catalog.gameVersion = '7.2'
     built.fn.mockResolvedValue({ gameVersion: '', categories: [], items: [] })
     await refreshCollectionsFromApi()
@@ -148,21 +148,21 @@ describe('syncCollection', () => {
     store.user.settings.region = 'fr'
   })
 
-  it('refuse une collection non synchronisable', async () => {
+  it('rejects a non-syncable collection', async () => {
     const res = await syncCollection('orchestrion')
     expect(res.ok).toBe(false)
     expect(res.message).toContain("n'est pas synchronisable")
     expect(store.user.syncLog[0].message).toMatch(/^\[orchestrion\]/)
   })
 
-  it('exige un ID de personnage', async () => {
+  it('requires a character ID', async () => {
     store.user.settings.lodestoneCharacterId = null
     expect((await syncCollection('mount')).message).toContain('Aucun ID')
     store.user.settings.lodestoneCharacterId = 'abc'
     expect((await syncCollection('mount')).message).toContain('Aucun ID')
   })
 
-  it('scrape la liste, résout les tooltips, met en cache et applique les possessions', async () => {
+  it('scrapes the list, resolves tooltips, caches them and applies ownership', async () => {
     fetchMock.fn.mockImplementation(async (url) => {
       if (url.endsWith('/mount/'))
         return 'mount/tooltip/aa mount/tooltip/bb mount/tooltip/aa mount/tooltip/cc mount/tooltip/dd'
@@ -180,7 +180,7 @@ describe('syncCollection', () => {
     expect(store.user.collectionHashCache['mount:aa']).toBe('Licorne')
     expect(store.user.collections['mount:1'].owned).toBe(true)
 
-    // 2ᵉ synchro : seul le tooltip en échec est retéléchargé
+    // Second sync: only the failed tooltip is downloaded again
     fetchMock.fn.mockClear()
     const again = await syncCollection('mount')
     expect(fetchMock.fn).toHaveBeenCalledTimes(2)
@@ -188,7 +188,7 @@ describe('syncCollection', () => {
     expect(again.newly).toBe(0)
   })
 
-  it('décode les entités hexadécimales et lit le libellé des emotes', async () => {
+  it('decodes hexadecimal entities and reads the emote label', async () => {
     fetchMock.fn.mockImplementation(async (url) => {
       if (url.endsWith('/emote/')) return 'emote/tooltip/ee emote/tooltip/ff'
       if (url.endsWith('/ee')) return tooltip('D&#x61;nse', 'name')
@@ -199,7 +199,7 @@ describe('syncCollection', () => {
     expect(store.user.collectionHashCache['emote:ff']).toBe(`"x" <> '`)
   })
 
-  it('signale une liste vide (collection privée)', async () => {
+  it('reports an empty list (private collection)', async () => {
     store.user.settings.lodestoneCharacterId = '4242'
     fetchMock.fn.mockResolvedValue('<html>rien</html>')
     const res = await syncCollection('minion')
@@ -207,7 +207,7 @@ describe('syncCollection', () => {
     expect(res.message).toContain('Liste vide')
   })
 
-  it('traduit un personnage introuvable et les erreurs réseau', async () => {
+  it('translates a missing character and network errors', async () => {
     fetchMock.fn.mockResolvedValueOnce('<h1>Character Not Found</h1>')
     expect((await syncCollection('mount')).message).toContain('introuvable (404)')
 

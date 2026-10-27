@@ -31,15 +31,15 @@ export function loadCollectionsSnapshot(): boolean {
     })
     return true
   } catch (err) {
-    console.error('[collections] échec de lecture du snapshot :', err)
+    console.error('[collections] failed to read snapshot:', err)
     return false
   }
 }
 
 /**
- * Aligne le catalogue local sur le snapshot embarqué.
- * Re-seed si le cache est vide OU si le snapshot a changé (nouveau patch / nouvelle version),
- * sans toucher aux possessions de l'utilisateur (stockées dans userdata.json).
+ * Aligns the local catalog with the bundled snapshot.
+ * Re-seeds if the cache is empty OR the snapshot changed (new patch / new version),
+ * without touching the user's ownership data (stored in userdata.json).
  */
 export function seedCollectionsIfEmpty(): void {
   const path = snapshotPath()
@@ -51,22 +51,22 @@ export function seedCollectionsIfEmpty(): void {
     const snap = JSON.parse(readFileSync(path, 'utf8')) as CollectionsSnapshot
     const stored = store.collections.generatedAt
     const fresh = store.collections.items.length === 0 || !stored || (snap.generatedAt ?? '') > stored
-    if (!fresh) return // cache déjà à jour (ou MAJ runtime plus récente)
+    if (!fresh) return // cache already up to date (or a more recent runtime update)
     store.setCollections({
       generatedAt: snap.generatedAt,
       gameVersion: snap.gameVersion,
       categories: snap.categories,
       items: snap.items
     })
-    console.log(`[collections] catalogue mis à jour (${snap.items.length} entrées)`)
+    console.log(`[collections] catalog updated (${snap.items.length} entries)`)
   } catch (err) {
-    console.error('[collections] échec de lecture du snapshot :', err)
+    console.error('[collections] failed to read snapshot:', err)
   }
 }
 
-// --------------------------------------------------------------- Mise à jour à chaud
+// --------------------------------------------------------------- Hot update
 
-/** Reconstruit tout le catalogue des collections à chaud (sans toucher aux possessions). */
+/** Rebuilds the whole collections catalog on the fly (without touching ownership). */
 export async function refreshCollectionsFromApi(): Promise<ReturnType<typeof repo.getCollectionStatus>> {
   const built = await buildCollections()
   store.setCollections({
@@ -78,7 +78,7 @@ export async function refreshCollectionsFromApi(): Promise<ReturnType<typeof rep
   return repo.getCollectionStatus()
 }
 
-// --------------------------------------------------------------- Scraping Lodestone
+// --------------------------------------------------------------- Lodestone scraping
 
 const HOSTS: Record<Region, string> = { na: 'na', eu: 'eu', fr: 'fr', de: 'de', ja: 'jp' }
 const UA =
@@ -87,7 +87,7 @@ const CONCURRENCY = 8
 const FETCH_TIMEOUT_MS = 20000
 const MAX_ITEMS = 1500
 
-// Seules les collections présentes sur le Lodestone sont synchronisables.
+// Only collections listed on the Lodestone can be synced.
 const LODESTONE_PATH: Partial<Record<CollectionType, string>> = {
   mount: 'mount',
   minion: 'minion',
@@ -115,7 +115,7 @@ async function fetchText(url: string): Promise<string> {
     const text = await fetchTextWithRetry(url, {
       headers: { 'User-Agent': UA, 'X-Requested-With': 'XMLHttpRequest' }
     }, 3, 1000, FETCH_TIMEOUT_MS)
-    // Vérifier manuellement le 404
+    // Check for 404 manually
     if (text.includes('Character Not Found') || text.includes('Page Not Found')) {
       throw new Error('Personnage introuvable (404). Vérifie l’ID Lodestone.')
     }
@@ -128,7 +128,7 @@ async function fetchText(url: string): Promise<string> {
   }
 }
 
-/** Exécute `fn` sur `items` avec un parallélisme borné. */
+/** Runs `fn` over `items` with bounded concurrency. */
 async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
   const results: R[] = new Array(items.length)
   let i = 0
@@ -144,14 +144,14 @@ async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promis
 
 export interface ScrapeOutcome {
   names: string[]
-  fetched: number // tooltips réellement téléchargés (nouveaux)
-  cached: number // résolus depuis le cache (déjà connus)
+  fetched: number // tooltips actually downloaded (new)
+  cached: number // resolved from the cache (already known)
 }
 
 /**
- * Récupère les noms possédés d'une collection.
- * Le hash de tooltip est global et stable : une fois résolu, il est mis en cache et
- * n'est plus jamais re-téléchargé (re-synchros quasi instantanées).
+ * Fetches the owned names of a collection.
+ * The tooltip hash is global and stable: once resolved it is cached and
+ * never downloaded again (near-instant re-syncs).
  */
 async function scrapeCollectionNames(
   type: CollectionType,
@@ -181,8 +181,8 @@ async function scrapeCollectionNames(
     const resolved = await mapLimit(unknown, CONCURRENCY, async (h) => {
       try {
         const frag = await fetchText(`${base}/${path}/tooltip/${h}`)
-        // Le libellé varie selon la collection : `..._header__label` (montures/mascottes)
-        // ou `..._header__name` (emotes).
+        // The label differs per collection: `..._header__label` (mounts/minions)
+        // or `..._header__name` (emotes).
         const m = frag.match(/__header__(?:label|name)">([^<]+)</)
         return m ? decodeEntities(m[1].trim()) : null
       } catch {
@@ -197,13 +197,13 @@ async function scrapeCollectionNames(
         fetched++
       }
     })
-    store.saveUser() // persiste le cache
+    store.saveUser() // persist the cache
   }
 
   return { names, fetched, cached: names.length - fetched }
 }
 
-/** Synchro à la demande d'une collection (monture ou mascotte). */
+/** On-demand sync of a collection (mount or minion). */
 export async function syncCollection(type: CollectionType): Promise<CollectionSyncResult> {
   const at = new Date().toISOString()
   const fail = (message: string): CollectionSyncResult => {

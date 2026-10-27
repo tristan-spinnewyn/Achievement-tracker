@@ -1,17 +1,17 @@
 import type { RecurringType } from './types'
 
 /**
- * Resets FFXIV — fixes en UTC, donc robustes au changement d'heure (été/hiver) :
- *   - Quotidien : 15:00 UTC  (= 17 h heure de Paris en été, 16 h en hiver)
- *   - Hebdomadaire : mardi 08:00 UTC  (= mardi 10 h en été, 9 h en hiver)
- *   - Ravitaillement (missions de grande compagnie) : 20:00 UTC
- *       (= 22 h heure de Paris en été, 21 h en hiver) — `daily22`.
+ * FFXIV resets — fixed in UTC, so robust to daylight saving changes:
+ *   - Daily: 15:00 UTC  (= 17:00 Paris time in summer, 16:00 in winter)
+ *   - Weekly: Tuesday 08:00 UTC  (= Tuesday 10:00 in summer, 09:00 in winter)
+ *   - Supply (Grand Company missions): 20:00 UTC
+ *       (= 22:00 Paris time in summer, 21:00 in winter) — `daily22`.
  */
 const DAY_MS = 86_400_000
 const DAILY_RESET_UTC_HOUR = 15
 const WEEKLY_RESET_UTC_HOUR = 8
-const WEEKLY_RESET_UTC_DAY = 2 // mardi (dim = 0)
-const SUPPLY_RESET_UTC_HOUR = 20 // missions de ravitaillement GC
+const WEEKLY_RESET_UTC_DAY = 2 // Tuesday (Sun = 0)
+const SUPPLY_RESET_UTC_HOUR = 20 // GC supply missions
 
 export function lastDailyReset(now: Date = new Date()): Date {
   const r = new Date(now)
@@ -37,7 +37,7 @@ export function nextWeeklyReset(now: Date = new Date()): Date {
   return new Date(lastWeeklyReset(now).getTime() + 7 * DAY_MS)
 }
 
-/** Reset des missions de ravitaillement GC : 20:00 UTC fixe (= 22 h Paris été / 21 h hiver). */
+/** GC supply mission reset: fixed 20:00 UTC (= 22:00 Paris summer / 21:00 winter). */
 export function lastDaily22Reset(now: Date = new Date()): Date {
   const r = new Date(now)
   r.setUTCHours(SUPPLY_RESET_UTC_HOUR, 0, 0, 0)
@@ -61,13 +61,13 @@ export function nextReset(type: RecurringType, now: Date = new Date()): Date {
   return nextDailyReset(now)
 }
 
-/** Début de la période PRÉCÉDENTE (utile pour le calcul des séries/streaks). */
+/** Start of the PREVIOUS period (useful to compute streaks). */
 export function previousPeriodStart(type: RecurringType, now: Date = new Date()): Date {
   const cur = periodStart(type, now)
   return periodStart(type, new Date(cur.getTime() - 1))
 }
 
-/** Une tâche est « faite » si sa dernière validation est postérieure au début de la période courante. */
+/** A task is "done" if its last check is after the start of the current period. */
 export function isDoneThisPeriod(
   type: RecurringType,
   lastCompletedAt: string | null,

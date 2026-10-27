@@ -41,7 +41,7 @@ function Stat({ label, value, sub }: { label: string; value: string; sub?: strin
   )
 }
 
-// Couleurs des niveaux de difficulté
+// Difficulty level colours
 const DIFFICULTY_COLORS: Record<DifficultyLevel, string> = {
   very_easy: '#22c55e',
   easy: '#84cc16',
@@ -202,7 +202,7 @@ export default function DashboardView() {
           <div className="mb-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {(Object.entries(difficultyStats.byLevel) as [DifficultyLevel, number][])
               .sort(([a], [b]) => {
-                // Ordre personnalisé pour l'affichage
+                // Custom display order
                 const order: DifficultyLevel[] = ['very_easy', 'easy', 'medium', 'hard', 'very_hard', 'extreme']
                 return order.indexOf(a) - order.indexOf(b)
               })

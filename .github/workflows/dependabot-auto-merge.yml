@@ -14,8 +14,8 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    # Auteur de la PR (et non github.actor, qui peut être un humain poussant sur la
-    # branche Dependabot) + dépôt d'origine (pas de fork).
+    # PR author (not github.actor, which can be a human pushing to the
+    # Dependabot branch) + origin repository (not a fork).
     if: github.event.pull_request.user.login == 'dependabot[bot]' && github.repository == 'tristan-spinnewyn/Achievement-tracker'
 
     steps:
@@ -25,8 +25,8 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
-      # Les montées de version majeures (Electron, Vite, React…) changent souvent le
-      # comportement ou la surface de sécurité : relecture humaine obligatoire.
+      # Major version bumps (Electron, Vite, React…) often change the
+      # behaviour or the security surface: human review required.
       - name: Approve and enable auto-merge (patch / minor only)
         if: steps.metadata.outputs.update-type != 'version-update:semver-major'
         run: |
@@ -39,7 +39,7 @@ jobs:
       - name: Flag major update for manual review
         if: steps.metadata.outputs.update-type == 'version-update:semver-major'
         run: |
-          gh pr comment "$PR_URL" --body "Mise à jour **majeure** (\`$DEPS\`) : auto-merge désactivé, relecture des notes de version et test manuel de l'application requis."
+          gh pr comment "$PR_URL" --body "**Major** update (\`$DEPS\`): auto-merge disabled, release notes review and manual app testing required."
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           DEPS: ${{ steps.metadata.outputs.dependency-names }}

@@ -157,8 +157,8 @@ const api = {
       ipcRenderer.invoke('difficulty:recalculate')
   },
   /**
-   * Écoute les demandes de navigation envoyées par le main process
-   * (ex: clic sur une notification). Retourne une fonction de désabonnement.
+   * Listens for navigation requests sent by the main process
+   * (e.g. a click on a notification). Returns an unsubscribe function.
    */
   onNavigate: (callback: (view: string) => void): (() => void) => {
     const listener = (_event: Electron.IpcRendererEvent, view: string): void => callback(view)
@@ -188,6 +188,6 @@ if (process.contextIsolated) {
     console.error(error)
   }
 } else {
-  // @ts-ignore (fallback quand l'isolation de contexte est désactivée)
+  // @ts-ignore (fallback when context isolation is disabled)
   window.api = api
 }

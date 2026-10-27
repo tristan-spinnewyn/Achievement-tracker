@@ -4,8 +4,8 @@ import { buildCollections, normalizeName } from '../src/main/services/collection
 type Rows = { row_id: number; fields?: Record<string, unknown> }[]
 
 /**
- * Faux XIVAPI v2 / FFXIV Collect : `sheets[sheet][lang]` = lignes de la 1ʳᵉ page
- * (les pages suivantes, demandées avec `after`, sont vides).
+ * Fake XIVAPI v2 / FFXIV Collect: `sheets[sheet][lang]` = rows of the first page
+ * (the following pages, requested with `after`, are empty).
  */
 function stubApis(sheets: Record<string, Partial<Record<string, Rows>>>, collect: Record<string, unknown[] | 'error' | 'throw'>) {
   const calls: string[] = []
@@ -98,13 +98,13 @@ const baseSheets = (): Record<string, Partial<Record<string, Rows>>> => ({
 afterEach(() => vi.unstubAllGlobals())
 
 describe('normalizeName', () => {
-  it('retire accents, casse, apostrophes typographiques et espaces superflus', () => {
+  it('strips accents, case, typographic apostrophes and extra spaces', () => {
     expect(normalizeName('  Élégant   Chocobo’s  ')).toBe("elegant chocobo's")
   })
 })
 
 describe('buildCollections', () => {
-  it('assemble toutes les collections avec alias, patchs, sources et catégories', async () => {
+  it('assembles every collection with aliases, patches, sources and categories', async () => {
     stubApis(baseSheets(), {
       mounts: [{ id: 1, patch: '2.0', sources: [{ type: 'Quête', text: 'MSQ' }, { text: '' }, {}] }],
       minions: [],
@@ -126,7 +126,7 @@ describe('buildCollections', () => {
     expect(res.gameVersion).toBe('v7.3')
     const get = (type: string, id: number) => res.items.find((i) => i.type === type && i.id === id)!
 
-    // Montures : nom capitalisé (Singular), alias multi-langues, patch/sources Collect
+    // Mounts: capitalised name (Singular), multi-language aliases, Collect patch/sources
     const mount = get('mount', 1)
     expect(mount).toMatchObject({ name: 'Licorne', iconPath: 'ui/m1.tex', order: 5, patch: '2.0', sources: ['Quête : MSQ'] })
     expect(mount.aliases).toEqual(['licorne', 'unicorn', 'einhorn', 'ユニコーン'])
@@ -135,12 +135,12 @@ describe('buildCollections', () => {
     expect(get('minion', 7)).toMatchObject({ name: 'Bébé chocobo', patch: null, sources: [] })
     expect(get('faceaccessory', 3)).toMatchObject({ name: 'Lunettes', order: 3, aliases: ['lunettes'] })
 
-    // Orchestrion : catégories triées, icône de catégorie
+    // Orchestrion: sorted categories, category icon
     expect(res.categories.filter((c) => c.type === 'orchestrion').map((c) => c.id)).toEqual([3, 4])
     expect(get('orchestrion', 10)).toMatchObject({ description: 'desc', iconPath: 'ui/oc.tex', categoryId: 4, order: 2, patch: '3.0', sources: ['Donjon'] })
     expect(get('orchestrion', 13)).toMatchObject({ iconPath: null, categoryId: null, order: 13 })
 
-    // Collections FFXIV Collect
+    // FFXIV Collect collections
     expect(get('emote', 20)).toMatchObject({ name: 'Danse', iconPath: 'ui/e.tex', aliases: ['danse', 'dance'] })
     expect(get('emote', 22)).toMatchObject({ name: 'Wave', iconPath: 'ui/w.tex', aliases: [] })
     expect(get('fashion', 30).name).toBe('Parasol')
@@ -148,11 +148,11 @@ describe('buildCollections', () => {
     expect(res.items.some((i) => i.type === 'hairstyle' && i.id === 61)).toBe(false)
     expect(get('title', 40)).toMatchObject({ name: 'le Brave', iconPath: null })
 
-    // Magie bleue : surcharge FR via AozAction
+    // Blue Magic: FR override via AozAction
     expect(get('spell', 1)).toMatchObject({ name: 'Canon à eau', iconPath: 'ui/s.tex' })
     expect(get('spell', 5)).toMatchObject({ name: 'Flamethrower', iconPath: 'ui/f.tex' })
 
-    // Triple Triade
+    // Triple Triad
     expect(get('tripletriad', 1)).toMatchObject({
       name: 'Dodo',
       description: 'Un oiseau',
@@ -163,7 +163,7 @@ describe('buildCollections', () => {
     expect(get('tripletriad', 3)).toMatchObject({ order: 3, sources: [] })
     expect(res.items.some((i) => i.type === 'tripletriad' && i.id === 2)).toBe(false)
 
-    // Bestiaire : fusion XIVAPI + Collect
+    // Bestiary: XIVAPI + Collect merge
     expect(get('beast', 1)).toMatchObject({ name: 'Cu sith', description: 'Chien', categoryId: 2, iconPath: 'ui/icon/123000/123456_hr1.tex', patch: '7.5' })
     expect(get('beast', 3)).toMatchObject({ name: 'Wolf', description: 'Loup', iconPath: 'ui/wolf.tex', categoryId: null, patch: '7.56' })
     expect(get('beast', 4)).toMatchObject({ name: 'Bombo', iconPath: null, categoryId: null })
@@ -171,7 +171,7 @@ describe('buildCollections', () => {
     expect(res.categories.filter((c) => c.type === 'beast')).toHaveLength(8)
   })
 
-  it('continue sans FFXIV Collect ni XBMPet indisponibles', async () => {
+  it('carries on without FFXIV Collect or XBMPet when unavailable', async () => {
     const sheets = baseSheets()
     delete sheets.XBMPet
     stubApis(sheets, {
@@ -186,14 +186,14 @@ describe('buildCollections', () => {
     expect(beasts).toEqual([expect.objectContaining({ id: 2, name: 'Rat', iconPath: null, patch: '7.56' })])
   })
 
-  it('remonte une erreur XIVAPI sur une feuille obligatoire', async () => {
+  it('surfaces an XIVAPI error on a required sheet', async () => {
     const sheets = baseSheets()
     delete sheets.Mount
     stubApis(sheets, {})
     await expect(buildCollections()).rejects.toThrow('XIVAPI HTTP 404 (Mount)')
   })
 
-  it('pagine avec `after` et retient la dernière version connue', async () => {
+  it('paginates with `after` and keeps the last known version', async () => {
     const calls = stubApis(baseSheets(), {})
     const res = await buildCollections()
     expect(calls.some((u) => u.includes('/Mount?') && u.includes('after=1'))).toBe(true)

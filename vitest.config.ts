@@ -2,9 +2,9 @@ import { resolve } from 'path'
 import { defineConfig } from 'vitest/config'
 
 /**
- * Config Vitest pour les fonctions pures du process principal.
- * `electron` est stubé : ces modules l'importent transitivement (via store.ts)
- * mais ne l'utilisent pas dans le code testé.
+ * Vitest config for the main process pure functions.
+ * `electron` is stubbed: these modules import it transitively (via store.ts)
+ * but do not use it in the tested code.
  */
 export default defineConfig({
   resolve: {
@@ -19,10 +19,10 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json-summary', 'html', 'lcov'],
-      // Périmètre explicite : sans `include`, v8 ne mesure que les fichiers importés
-      // par les tests et le pourcentage global est artificiellement gonflé.
-      // Les composants/vues React (src/renderer/src/{components,views}) relèveront
-      // de tests de composants / E2E et ne sont pas encore mesurés.
+      // Explicit scope: without `include`, v8 only measures the files imported
+      // by the tests and the global percentage is artificially inflated.
+      // React components/views (src/renderer/src/{components,views}) will be
+      // covered by component / E2E tests and are not measured yet.
       include: [
         'src/main/**/*.ts',
         'src/preload/**/*.ts',
@@ -32,12 +32,12 @@ export default defineConfig({
       ],
       exclude: ['**/*.d.ts'],
       thresholds: {
-        // Plancher global : 80 % minimum sur le périmètre ci-dessus (ne jamais le baisser).
+        // Global floor: 80% minimum on the scope above (never lower it).
         lines: 80,
         statements: 80,
         branches: 80,
         functions: 80,
-        // Modules critiques (sécurité / intégrité des données) : exigence forte.
+        // Critical modules (security / data integrity): stricter requirement.
         'src/main/ipc/trust.ts': { lines: 100, branches: 100 },
         'src/main/utils/icons.ts': { lines: 80, branches: 70 },
         'src/main/services/backup.ts': { lines: 90, branches: 80 },
