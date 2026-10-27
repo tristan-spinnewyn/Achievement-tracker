@@ -40,13 +40,13 @@ export interface UserData {
   tagsByAchievement: Record<string, string[]>
   recurringTasks: RecurringTask[]
   syncLog: SyncLogEntry[]
-  /** Possession des collections, clé `${type}:${id}`. */
+  /** Collection ownership, keyed `${type}:${id}`. */
   collections: Record<string, CollectionOwnership>
-  /** Cache Lodestone : `${type}:${hash}` -> nom de l'objet (le hash est global et stable). */
+  /** Lodestone cache: `${type}:${hash}` -> item name (the hash is global and stable). */
   collectionHashCache: Record<string, string>
-  /** Historique des actions pour undo/redo. */
+  /** Action history for undo/redo. */
   undoStack: UndoableAction[]
-  /** Pile des actions annulées (pour redo). */
+  /** Stack of undone actions (for redo). */
   redoStack: UndoableAction[]
 }
 
@@ -94,14 +94,14 @@ function readJson<T>(path: string, fallback: T): T {
   }
 }
 
-/** Écriture atomique : fichier temporaire + renommage, pour éviter une sauvegarde corrompue. */
+/** Atomic write: temporary file + rename, to avoid a corrupted save. */
 function atomicWrite(path: string, data: string): void {
   const tmp = `${path}.tmp`
   writeFileSync(tmp, data, 'utf8')
   renameSync(tmp, path)
 }
 
-/** Clé de stockage d'un élément de collection. */
+/** Storage key of a collection item. */
 export function collKey(type: string, id: number): string {
   return `${type}:${id}`
 }
@@ -120,7 +120,7 @@ class Store {
   achievementById = new Map<number, Achievement>()
   collectionItemByKey = new Map<string, CollectionItem>()
   
-  // Difficultés calculées pour chaque haut fait
+  // Computed difficulty of each achievement
   difficulties: Map<number, AchievementDifficulty> = new Map()
 
   init(): void {
@@ -141,19 +141,19 @@ class Store {
         (initialUser.recurringTasks && initialUser.recurringTasks.length > 0))
 
     if (!hasData) {
-      // Si aucune donnée dans userData (nouveau PC ou réinstallation), vérifier si une sauvegarde existe dans Documents
+      // No data in userData (new PC or reinstall): check whether a backup exists in Documents
       try {
         const docFolder = join(app.getPath('documents'), 'FFXIV Achievement Tracker')
         const docPath = join(docFolder, 'userdata-backup.json')
         if (existsSync(docPath)) {
           const docData = JSON.parse(readFileSync(docPath, 'utf8')) as Partial<UserData>
           if (docData && (docData.progress || docData.collections || docData.settings)) {
-            console.log(`[store] Restauration automatique depuis la sauvegarde Documents : ${docPath}`)
+            console.log(`[store] Auto-restoring from the Documents backup: ${docPath}`)
             initialUser = docData
           }
         }
       } catch (err) {
-        console.error('[store] Échec de lecture de la sauvegarde Documents :', err)
+        console.error('[store] Failed to read the Documents backup:', err)
       }
     }
 
@@ -208,11 +208,11 @@ class Store {
       const docPath = join(docFolder, 'userdata-backup.json')
       atomicWrite(docPath, JSON.stringify(this.user, null, 2))
     } catch (err) {
-      console.error('[store] Échec de la sauvegarde Documents :', err)
+      console.error('[store] Failed to write the Documents backup:', err)
     }
   }
 
-  /** Remplace les données utilisateur (import de sauvegarde), en comblant les champs manquants. */
+  /** Replaces the user data (backup import), filling in missing fields. */
   replaceUser(data: Partial<UserData>): void {
     this.user = {
       ...emptyUser(),
@@ -223,14 +223,14 @@ class Store {
   }
 
   /**
-   * Définit les difficultés calculées pour tous les hauts faits
+   * Sets the computed difficulties for all achievements
    */
   setDifficulties(difficulties: Map<number, AchievementDifficulty>): void {
     this.difficulties = difficulties
   }
 
   /**
-   * Récupère la difficulté d'un haut fait spécifique
+   * Returns the difficulty of a specific achievement
    */
   getDifficulty(achievementId: number): AchievementDifficulty | undefined {
     return this.difficulties.get(achievementId)

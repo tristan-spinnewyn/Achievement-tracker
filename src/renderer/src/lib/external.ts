@@ -16,13 +16,13 @@ const COLLECT_PATH: Partial<Record<CollectionType, string>> = {
 const wikiSearch = (name: string): string =>
   `https://ffxiv.gamerescape.com/w/index.php?search=${encodeURIComponent(name)}`
 
-/** Lien externe pour un élément de collection (FFXIV Collect si dispo, sinon recherche wiki). */
+/** External link for a collection item (FFXIV Collect when available, otherwise a wiki search). */
 export function collectionExternalUrl(type: CollectionType, id: number, name: string): string {
   const p = COLLECT_PATH[type]
   return p ? `https://ffxivcollect.com/${p}/${id}` : wikiSearch(name)
 }
 
-/** Lien externe pour un haut fait. */
+/** External link for an achievement. */
 export function achievementExternalUrl(id: number): string {
   return `https://ffxivcollect.com/achievements/${id}`
 }

@@ -29,13 +29,13 @@ export interface Achievement {
   kindId: number
   iconPath: string | null
   obtainable: boolean
-  /** Patch d'introduction, ex. « 7.51 » ; null si inconnu. */
+  /** Patch that introduced it, e.g. "7.51"; null if unknown. */
   patch: string | null
-  /** Est-ce un haut fait saisonnier/événementiel ? */
+  /** Is this a seasonal / event achievement? */
   isSeasonal?: boolean
-  /** Nom de l'événement saisonnier, ex. « Moonfire Faire », « Little Ladies' Day », etc. */
+  /** Name of the seasonal event, e.g. "Moonfire Faire", "Little Ladies' Day", etc. */
   seasonalEvent?: string | null
-  /** Date de fin de l'événement saisonnier (ISO date) si connu, null sinon. */
+  /** End date of the seasonal event (ISO date) if known, null otherwise. */
   seasonalEndDate?: string | null
 }
 
@@ -72,7 +72,7 @@ export interface AchievementRow extends Achievement {
 }
 
 export type AchievementStatus = 'all' | 'completed' | 'todo' | 'focus'
-// Note : `patch` est hérité d'Achievement par AchievementRow.
+// Note: `patch` is inherited from Achievement by AchievementRow.
 export type SortField =
   | 'name'
   | 'points'
@@ -95,13 +95,13 @@ export interface AchievementFilter {
   obtainableOnly?: boolean
   hasNote?: boolean
   tags?: string[]
-  /** Filtre par patch d'introduction, ex. « 7.51 ». */
+  /** Filter by the patch that introduced it, e.g. "7.51". */
   patch?: string | null
-  /** Filtrer uniquement les hauts faits saisonniers. */
+  /** Only seasonal achievements. */
   seasonalOnly?: boolean
-  /** Filtrer par événement saisonnier spécifique. */
+  /** Filter by a specific seasonal event. */
   seasonalEvent?: string | null
-  /** Filtrer par niveau de difficulté */
+  /** Filter by difficulty level */
   difficultyLevel?: DifficultyLevel | null
   sortBy?: SortField
   sortDir?: SortDir
@@ -146,11 +146,11 @@ export interface Settings {
   language: Language
   lastSyncAt: string | null
   theme: 'dark' | 'light'
-  /** Synchroniser le Lodestone automatiquement au démarrage. */
+  /** Sync the Lodestone automatically at startup. */
   autoSync: boolean
-  /** Poids pour le moteur de suggestion. */
+  /** Weights for the suggestion engine. */
   suggestionWeights: SuggestionWeights
-  /** Sauvegarde automatique miroir dans Mes Documents à chaque modification. */
+  /** Automatic mirror backup in My Documents on every change. */
   autoBackupDocuments?: boolean
 }
 
@@ -179,22 +179,22 @@ export interface SyncLogEntry {
   message: string
 }
 
-/** Action pour l'historique undo/redo. */
+/** Action for the undo/redo history. */
 export type UndoableAction = {
   type: 'setCompletion' | 'setPriority' | 'setFocus' | 'setNote' | 'setTags' | 'setDeadline'
   achievementId: number
   timestamp: string
-  /** Données avant la modification (pour undo). */
+  /** Data before the change (for undo). */
   previousData: Record<string, unknown>
-  /** Données après la modification (pour redo). */
+  /** Data after the change (for redo). */
   newData: Record<string, unknown>
 }
 
 /**
- * Type de récurrence d'une tâche :
- *  - `daily`   : reset quotidien du JEU (15:00 UTC).
- *  - `weekly`  : reset hebdomadaire du jeu (mardi 08:00 UTC).
- *  - `daily22` : reset quotidien PERSO à 22:00 heure locale.
+ * Recurrence type of a task:
+ *  - `daily`   : GAME daily reset (15:00 UTC).
+ *  - `weekly`  : game weekly reset (Tuesday 08:00 UTC).
+ *  - `daily22` : PERSONAL daily reset at 22:00 local time.
  */
 export type RecurringType = 'daily' | 'weekly' | 'daily22'
 
@@ -221,9 +221,9 @@ export interface RecurringTask {
   type: RecurringType
   achievementId: number | null
   iconPath: string | null
-  /** ISO de la dernière validation ; comparée au début de période pour savoir si « fait ». */
+  /** ISO of the last check; compared with the period start to know whether it is "done". */
   lastCompletedAt: string | null
-  /** Nombre de périodes consécutives validées (série en cours). Absent = 0 (anciennes données). */
+  /** Number of consecutive checked periods (current streak). Missing = 0 (old data). */
   streak?: number
   createdAt: string
 }
@@ -258,7 +258,7 @@ export interface CatalogStatus {
 
 // ---------------------------------------------------------------- Collections
 
-/** Collections suivies (montures, mascottes, orchestrion, emotes, mode, coiffures, barde, titres). */
+/** Tracked collections (mounts, minions, orchestrion, emotes, fashion, hairstyles, barding, titles). */
 export type CollectionType =
   | 'mount'
   | 'minion'
@@ -273,7 +273,7 @@ export type CollectionType =
   | 'tripletriad'
   | 'beast'
 
-/** Types synchronisables depuis le Lodestone. */
+/** Types syncable from the Lodestone. */
 export const SYNCABLE_COLLECTIONS: CollectionType[] = ['mount', 'minion', 'emote', 'faceaccessory']
 
 export interface CollectionCategory {
@@ -291,11 +291,11 @@ export interface CollectionItem {
   iconPath: string | null
   categoryId: number | null
   order: number
-  /** Patch d'introduction, ex. « 7.51 » ; null si inconnu. */
+  /** Patch that introduced it, e.g. "7.51"; null if unknown. */
   patch: string | null
-  /** Moyen(s) d'obtention, ex. « Quête : … », « Boutique en ligne ». */
+  /** Acquisition method(s), e.g. "Quête : …", "Boutique en ligne". */
   sources: string[]
-  /** Noms normalisés (FR/EN/DE/JA) pour matcher le Lodestone ; vide si non synchronisable. */
+  /** Normalised names (FR/EN/DE/JA) to match the Lodestone; empty if not syncable. */
   aliases: string[]
 }
 
@@ -306,7 +306,7 @@ export interface CollectionsSnapshot {
   items: CollectionItem[]
 }
 
-/** État de possession d'un élément, stocké côté utilisateur (clé `${type}:${id}`). */
+/** Ownership state of an item, stored on the user side (key `${type}:${id}`). */
 export interface CollectionOwnership {
   owned: boolean
   ownedDate: string | null
@@ -314,7 +314,7 @@ export interface CollectionOwnership {
   updatedAt: string
 }
 
-/** Ligne dénormalisée consommée par l'UI. */
+/** Denormalized row consumed by the UI. */
 export interface CollectionItemRow extends CollectionItem {
   categoryName: string
   owned: boolean

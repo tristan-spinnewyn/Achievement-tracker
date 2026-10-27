@@ -1,13 +1,13 @@
 /**
- * Moteur de recherche avancée utilisant FlexSearch.
- * Supporte les opérateurs AND, OR, NOT, les parenthèses et la recherche full-text.
+ * Advanced search engine built on FlexSearch.
+ * Supports the AND, OR, NOT operators, parentheses and full-text search.
  */
 
 import { Document } from 'flexsearch'
 import type { AchievementRow } from '@shared/types'
 import { store } from '../data/store'
 
-/** Forme indexée d'un haut fait (champs aplatis pour FlexSearch). */
+/** Indexed shape of an achievement (flattened fields for FlexSearch). */
 interface IndexDoc {
   id: number
   name: string
@@ -17,11 +17,11 @@ interface IndexDoc {
   [key: string]: string | number
 }
 
-// Index FlexSearch pour une recherche rapide
+// FlexSearch index for fast search
 let searchIndex: Document<IndexDoc> | null = null
 
 /**
- * Initialise (ou réinitialise) l'index de recherche.
+ * Initialises (or re-initialises) the search index.
  */
 export function initSearchIndex(): void {
   const idx = new Document<IndexDoc>({
@@ -48,12 +48,12 @@ export function initSearchIndex(): void {
 }
 
 /**
- * Parse une requête de recherche avec support complet des opérateurs.
- * Exemples :
- *   "monture AND combat"
- *   "monture OR dragon"
- *   "monture NOT combat"
- *   "(monture OR dragon) AND combat"
+ * Parses a search query with full operator support.
+ * Examples:
+ *   "mount AND combat"
+ *   "mount OR dragon"
+ *   "mount NOT combat"
+ *   "(mount OR dragon) AND combat"
  *   "pvp AND (daily OR weekly)"
  */
 export function parseAdvancedQuery(query: string): {
@@ -62,13 +62,13 @@ export function parseAdvancedQuery(query: string): {
 } {
   const lowerQuery = query.toLowerCase().trim()
   
-  // Si pas d'opérateurs, retourner un seul token
+  // No operators: return a single token
   if (!lowerQuery.includes(' and ') && !lowerQuery.includes(' or ') && !lowerQuery.includes(' not ')) {
     return { tokens: [lowerQuery], operators: [] }
   }
   
-  // Tokenizer avancé qui respecte les parenthèses
-  // Approche : utiliser une stack pour gérer les parenthèses
+  // Advanced tokenizer that respects parentheses
+  // Approach: use a stack to handle parentheses
   const tokens: string[] = []
   const operators: string[] = []
   
@@ -80,35 +80,35 @@ export function parseAdvancedQuery(query: string): {
     const nextChar = lowerQuery[i + 1]
     const prevChar = lowerQuery[i - 1]
     
-    // Ignorer les espaces multiples
+    // Skip repeated spaces
     if (char === ' ' && nextChar === ' ') {
       i++
       continue
     }
     
-    // Détecter les opérateurs (AND, OR, NOT)
+    // Detect operators (AND, OR, NOT)
     if (char === ' ' && (lowerQuery.slice(i + 1).startsWith('and ') || 
                          lowerQuery.slice(i + 1).startsWith('or ') || 
                          lowerQuery.slice(i + 1).startsWith('not '))) {
-      // Sauvegarder le token courant
+      // Save the current token
       if (currentToken) {
         tokens.push(currentToken)
         currentToken = ''
       }
       
-      // Détecter l'opérateur et sauter « <espace>OP<espace> » jusqu'au token suivant.
+      // Detect the operator and skip "<space>OP<space>" up to the next token.
       if (lowerQuery.slice(i + 1).startsWith('and ')) {
         operators.push('AND')
-        i += 5 // sauter " and "
+        i += 5 // skip " and "
       } else if (lowerQuery.slice(i + 1).startsWith('or ')) {
         operators.push('OR')
-        i += 4 // sauter " or "
+        i += 4 // skip " or "
       } else if (lowerQuery.slice(i + 1).startsWith('not ')) {
         operators.push('NOT')
-        i += 5 // sauter " not "
+        i += 5 // skip " not "
       }
     } else if (char === '(' || char === ')') {
-      // Pour l'instant, ignorer les parenthèses (traitement simplifié)
+      // Parentheses are ignored for now (simplified handling)
       i++
     } else {
       currentToken += char
@@ -116,7 +116,7 @@ export function parseAdvancedQuery(query: string): {
     }
   }
   
-  // Ajouter le dernier token
+  // Add the last token
   if (currentToken) {
     tokens.push(currentToken)
   }
@@ -125,18 +125,18 @@ export function parseAdvancedQuery(query: string): {
 }
 
 /**
- * Évalue une requête de recherche avancée.
- * Utilise FlexSearch si disponible, sinon falls back sur une recherche simple.
+ * Evaluates an advanced search query.
+ * Uses FlexSearch when available, otherwise falls back to a simple search.
  */
 export function evaluateAdvancedQuery(query: string): (row: AchievementRow) => boolean {
   const lowerQuery = query.toLowerCase().trim()
   
-  // Si pas de requête, tout correspond
+  // Empty query: everything matches
   if (!lowerQuery) {
     return () => true
   }
   
-  // Si l'index n'est pas initialisé, utiliser la méthode simple
+  // Index not initialised: use the simple method
   if (!searchIndex) {
     return (row) => {
       const rowText = `${row.name.toLowerCase()} ${row.description.toLowerCase()} ${row.categoryName.toLowerCase()} ${row.kindName.toLowerCase()}`
@@ -144,12 +144,12 @@ export function evaluateAdvancedQuery(query: string): (row: AchievementRow) => b
     }
   }
   
-  // Parse la requête
+  // Parse the query
   const { tokens, operators } = parseAdvancedQuery(lowerQuery)
   
-  // Si un seul token, utiliser FlexSearch directement.
-  // Document.search renvoie un tableau de groupes `{ field, result: Id[] }` ;
-  // on aplatit tous les ids correspondants.
+  // Single token: use FlexSearch directly.
+  // Document.search returns an array of groups `{ field, result: Id[] }`;
+  // we flatten all matching ids.
   if (tokens.length === 1) {
     const groups = searchIndex.search(tokens[0], { suggest: true })
     const resultIds = new Set<number>()
@@ -159,21 +159,21 @@ export function evaluateAdvancedQuery(query: string): (row: AchievementRow) => b
     return (row) => resultIds.has(row.id)
   }
   
-  // Sinon, évaluer l'expression booléenne
-  // C'est une implémentation simplifiée qui évalue de gauche à droite
+  // Otherwise, evaluate the boolean expression
+  // This is a simplified implementation that evaluates left to right
   return (row) => {
     const rowText = `${row.name.toLowerCase()} ${row.description.toLowerCase()} ${row.categoryName.toLowerCase()} ${row.kindName.toLowerCase()}`
     
     let result = true
     let i = 0
     
-    // Premier token
+    // First token
     if (i < tokens.length) {
       result = rowText.includes(tokens[i])
       i++
     }
     
-    // Appliquer les opérateurs
+    // Apply the operators
     while (i < tokens.length && i - 1 < operators.length) {
       const op = operators[i - 1]
       const tokenMatch = rowText.includes(tokens[i])
@@ -194,15 +194,15 @@ export function evaluateAdvancedQuery(query: string): (row: AchievementRow) => b
 }
 
 /**
- * Met à jour l'index de recherche (appelé quand le catalogue change).
+ * Updates the search index (called when the catalog changes).
  */
 export function updateSearchIndex(): void {
-  // Reconstruit un index neuf (FlexSearch.Document n'expose pas de vidage fiable).
+  // Builds a fresh index (FlexSearch.Document exposes no reliable way to clear it).
   initSearchIndex()
 }
 
 /**
- * Recherche des hauts faits avec une requête avancée.
+ * Searches achievements with an advanced query.
  */
 export function searchAchievements(query: string): AchievementRow[] {
   const searchFn = evaluateAdvancedQuery(query)

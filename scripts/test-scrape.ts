@@ -1,7 +1,7 @@
 /**
- * Validation autonome du scrape Lodestone + correspondance avec le catalogue.
- * Réplique la logique de src/main/services/lodestone.ts (pas d'import Electron).
- * Lancer : npx tsx scripts/test-scrape.ts [characterId]
+ * Standalone check of the Lodestone scrape + matching against the catalog.
+ * Replicates the logic of src/main/services/lodestone.ts (no Electron import).
+ * Run: npx tsx scripts/test-scrape.ts [characterId]
  */
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
@@ -52,15 +52,15 @@ async function main(): Promise<void> {
   const matched = all.filter((it) => catalogIds.has(it.id)).length
   const unmatched = all.filter((it) => !catalogIds.has(it.id))
 
-  console.log(`\n— Personnage ${id} —`)
+  console.log(`\n— Character ${id} —`)
   console.log(`Pages          : ${totalPages}`)
   console.log(`Hauts faits lus : ${all.length}`)
-  console.log(`Présents dans le catalogue : ${matched}/${all.length}`)
-  console.log(`Non trouvés     : ${unmatched.length}`, unmatched.slice(0, 5).map((u) => u.id))
+  console.log(`Present in the catalog: ${matched}/${all.length}`)
+  console.log(`Not found      : ${unmatched.length}`, unmatched.slice(0, 5).map((u) => u.id))
   console.log('Exemple :', all.slice(0, 3))
 }
 
 main().catch((e) => {
-  console.error('\nÉchec :', e)
+  console.error('\nFailed:', e)
   process.exit(1)
 })

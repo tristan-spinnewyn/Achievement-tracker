@@ -1,5 +1,5 @@
 /**
- * Composant de graphique pour afficher la progression des hauts faits dans le temps.
+ * Chart component showing achievement progress over time.
  */
 
 import { useEffect, useState } from 'react'
@@ -18,7 +18,7 @@ import {
 } from 'chart.js'
 import type { SyncLogEntry } from '@shared/types'
 
-// Enregistrer les composants ChartJS nécessaires
+// Register the required ChartJS components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -37,14 +37,14 @@ export interface ProgressChartData {
 }
 
 /**
- * Convertit l'historique de sync en données pour le graphique.
+ * Converts the sync history into chart data.
  */
 function processSyncLog(log: SyncLogEntry[]): ProgressChartData {
   const labels: string[] = []
   const completions: number[] = []
   const points: number[] = []
 
-  // Trier par date (la plus ancienne en premier)
+  // Sort by date (oldest first)
   const sortedLog = [...log].sort((a, b) => a.at.localeCompare(b.at))
 
   let cumulativeCompletions = 0
@@ -53,7 +53,7 @@ function processSyncLog(log: SyncLogEntry[]): ProgressChartData {
   for (const entry of sortedLog) {
     if (entry.ok) {
       cumulativeCompletions += entry.newlyCompleted
-      // Note: On n'a pas les points dans le log, donc on utilise le total
+      // Note: the log has no points, so we use the total
       cumulativePoints = entry.totalCompleted // Approximation
       
       labels.push(new Date(entry.at).toLocaleDateString('fr-FR'))

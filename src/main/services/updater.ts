@@ -31,7 +31,7 @@ export function getUpdaterStatus(): UpdateStatus {
 
 export async function checkForUpdates(): Promise<UpdateStatus> {
   if (!app.isPackaged) {
-    console.log('[AutoUpdater] Application non packagée (mode dev) : recherche ignorée.')
+    console.log('[AutoUpdater] App not packaged (dev mode): update check skipped.')
     const status: UpdateStatus = { state: 'not-available', version: app.getVersion() }
     setStatus(status)
     return status
@@ -43,7 +43,7 @@ export async function checkForUpdates(): Promise<UpdateStatus> {
     return currentStatus
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : String(err)
-    console.error('[AutoUpdater] Erreur lors de la vérification :', errorMsg)
+    console.error('[AutoUpdater] Error while checking for updates:', errorMsg)
     const errStatus: UpdateStatus = { state: 'error', message: errorMsg }
     setStatus(errStatus)
     return errStatus
@@ -56,21 +56,21 @@ export async function downloadUpdate(): Promise<void> {
     await autoUpdater.downloadUpdate()
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : String(err)
-    console.error('[AutoUpdater] Erreur lors du téléchargement :', errorMsg)
+    console.error('[AutoUpdater] Error while downloading the update:', errorMsg)
     setStatus({ state: 'error', message: errorMsg })
   }
 }
 
 export function quitAndInstall(): void {
   if (!app.isPackaged) return
-  // Ferme l'application et lance l'installateur
+  // Quit the app and launch the installer
   autoUpdater.quitAndInstall(false, true)
 }
 
 export function initUpdater(mainWindow: BrowserWindow): void {
   mainWindowRef = mainWindow
 
-  // Configuration de l'auto-updater
+  // Auto-updater configuration
   autoUpdater.autoDownload = true
   autoUpdater.autoInstallOnAppQuit = true
   autoUpdater.allowDowngrade = false
@@ -82,7 +82,7 @@ export function initUpdater(mainWindow: BrowserWindow): void {
       repo: 'Achievement-tracker'
     })
   } catch {
-    // Ignorer si déjà configuré via app-update.yml
+    // Ignore if already configured via app-update.yml
   }
 
   autoUpdater.on('checking-for-update', () => {
@@ -129,16 +129,16 @@ export function initUpdater(mainWindow: BrowserWindow): void {
 
   autoUpdater.on('error', (err) => {
     const message = err?.message || 'Erreur lors de la mise à jour'
-    console.error('[AutoUpdater] Erreur détectée :', message)
+    console.error('[AutoUpdater] Error detected:', message)
     setStatus({ state: 'error', message })
   })
 
-  // Vérification automatique au lancement si l'app est packagée
+  // Automatic check at launch when the app is packaged
   if (app.isPackaged) {
-    // Petit délai de 3 secondes après l'ouverture de la fenêtre pour ne pas ralentir le démarrage initial
+    // Short 3-second delay after the window opens so the initial startup is not slowed down
     setTimeout(() => {
       checkForUpdates().catch((err) => {
-        console.error('[AutoUpdater] Échec de la vérification au démarrage :', err)
+        console.error('[AutoUpdater] Update check at startup failed:', err)
       })
     }, 3000)
   }

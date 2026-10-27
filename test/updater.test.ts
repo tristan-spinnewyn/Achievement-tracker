@@ -40,7 +40,7 @@ describe('Service Updater (auto-updater)', () => {
     setMockPackaged(false)
   })
 
-  it('gère le mode développement (non packagé) sans erreur', async () => {
+  it('handles development mode (not packaged) without errors', async () => {
     setMockPackaged(false)
 
     const status = await updaterModule.checkForUpdates()
@@ -54,7 +54,7 @@ describe('Service Updater (auto-updater)', () => {
     expect(mockAutoUpdater.quitAndInstall).not.toHaveBeenCalled()
   })
 
-  it('initialise autoUpdater et enregistre les écouteurs sur la fenêtre', async () => {
+  it('initialises autoUpdater and registers the listeners on the window', async () => {
     setMockPackaged(true)
 
     const sentEvents: { channel: string; data: unknown }[] = []
@@ -73,7 +73,7 @@ describe('Service Updater (auto-updater)', () => {
     expect(mockAutoUpdater.autoDownload).toBe(true)
     expect(mockAutoUpdater.autoInstallOnAppQuit).toBe(true)
 
-    // Événement checking-for-update
+    // checking-for-update event
     mockAutoUpdater.emit('checking-for-update')
     expect(updaterModule.getUpdaterStatus().state).toBe('checking')
     expect(sentEvents).toContainEqual({
@@ -81,7 +81,7 @@ describe('Service Updater (auto-updater)', () => {
       data: { state: 'checking' }
     })
 
-    // Événement update-available avec release notes sous forme de string
+    // update-available event with release notes as a string
     mockAutoUpdater.emit('update-available', {
       version: '1.2.0',
       releaseDate: '2026-09-20',
@@ -94,7 +94,7 @@ describe('Service Updater (auto-updater)', () => {
       releaseNotes: 'Correction de bugs'
     })
 
-    // Événement download-progress
+    // download-progress event
     mockAutoUpdater.emit('download-progress', {
       percent: 42.6,
       bytesPerSecond: 1048576,
@@ -112,7 +112,7 @@ describe('Service Updater (auto-updater)', () => {
       }
     })
 
-    // Événement update-downloaded
+    // update-downloaded event
     mockAutoUpdater.emit('update-downloaded', {
       version: '1.2.0'
     })
@@ -121,14 +121,14 @@ describe('Service Updater (auto-updater)', () => {
       version: '1.2.0'
     })
 
-    // Événement error
+    // error event
     mockAutoUpdater.emit('error', new Error('Erreur de connexion réseau'))
     expect(updaterModule.getUpdaterStatus()).toEqual({
       state: 'error',
       message: 'Erreur de connexion réseau'
     })
 
-    // Événement update-not-available
+    // update-not-available event
     mockAutoUpdater.emit('update-not-available', {
       version: '1.0.1'
     })
@@ -138,7 +138,7 @@ describe('Service Updater (auto-updater)', () => {
     })
   })
 
-  it('formate correctement les releaseNotes sous forme de tableau', async () => {
+  it('formats releaseNotes given as an array', async () => {
     setMockPackaged(true)
 
     const mockWindow = {
@@ -163,7 +163,7 @@ describe('Service Updater (auto-updater)', () => {
     }
   })
 
-  it('déclenche les méthodes autoUpdater en mode packagé', async () => {
+  it('triggers the autoUpdater methods in packaged mode', async () => {
     setMockPackaged(true)
 
     await updaterModule.checkForUpdates()
@@ -176,7 +176,7 @@ describe('Service Updater (auto-updater)', () => {
     expect(mockAutoUpdater.quitAndInstall).toHaveBeenCalledWith(false, true)
   })
 
-  it('gère une erreur lors de checkForUpdates ou downloadUpdate en mode packagé', async () => {
+  it('handles an error in checkForUpdates or downloadUpdate in packaged mode', async () => {
     setMockPackaged(true)
 
     mockAutoUpdater.checkForUpdates.mockRejectedValueOnce(new Error('GitHub 404'))
@@ -195,13 +195,13 @@ describe('Service Updater (auto-updater)', () => {
     }
   })
 
-  it('ne plante pas si la fenêtre est détruite lors de setStatus', async () => {
+  it('does not crash if the window is destroyed during setStatus', async () => {
     setMockPackaged(true)
 
     const mockSend = vi.fn()
     const mockWindow = {
       webContents: { send: mockSend },
-      isDestroyed: () => true // fenêtre fermée / détruite
+      isDestroyed: () => true // window closed / destroyed
     }
     // @ts-ignore
     updaterModule.initUpdater(mockWindow)

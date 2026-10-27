@@ -6,7 +6,7 @@ afterEach(() => vi.unstubAllGlobals())
 const res = (status: number, body = ''): Response => new Response(body, { status })
 
 describe('fetchWithRetry', () => {
-  it('renvoie directement une réponse OK ou une erreur non réessayable (404)', async () => {
+  it('returns an OK response or a non-retryable error (404) directly', async () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(res(200, 'ok')).mockResolvedValueOnce(res(404))
     vi.stubGlobal('fetch', fetchMock)
     expect((await fetchWithRetry('https://x', {}, 3, 1)).status).toBe(200)
@@ -14,21 +14,21 @@ describe('fetchWithRetry', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 
-  it('réessaie sur 5xx / 429 puis réussit', async () => {
+  it('retries on 5xx / 429 then succeeds', async () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(res(503)).mockResolvedValueOnce(res(429)).mockResolvedValue(res(200, 'fin'))
     vi.stubGlobal('fetch', fetchMock)
     expect(await fetchTextWithRetry('https://x', {}, 3, 1)).toBe('fin')
     expect(fetchMock).toHaveBeenCalledTimes(3)
   })
 
-  it('lève une FetchError avec le statut après épuisement des tentatives', async () => {
+  it('throws a FetchError with the status once retries are exhausted', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(res(500)))
     const err = await fetchWithRetry('https://x', {}, 1, 1).catch((e) => e)
     expect(err).toBeInstanceOf(FetchError)
     expect(err.status).toBe(500)
   })
 
-  it('enveloppe les erreurs réseau dans une FetchError', async () => {
+  it('wraps network errors in a FetchError', async () => {
     const fetchMock = vi.fn().mockRejectedValue(new TypeError('ECONNRESET'))
     vi.stubGlobal('fetch', fetchMock)
     const err = await fetchWithRetry('https://x', {}, 2, 1).catch((e) => e)
@@ -37,7 +37,7 @@ describe('fetchWithRetry', () => {
     expect(fetchMock).toHaveBeenCalledTimes(3)
   })
 
-  it('abandonne une requête qui dépasse le timeout', async () => {
+  it('aborts a request that exceeds the timeout', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn((_url: string, init: RequestInit) =>

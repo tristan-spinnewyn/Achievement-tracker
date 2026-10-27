@@ -74,7 +74,7 @@ export default function FocusView() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
   const load = async () => setItems(await window.api.achievements.focusList())
-  // Recharge aussi quand les données changent (ex. priorité modifiée via le panneau de détail).
+  // Also reload when the data changes (e.g. priority changed from the detail panel).
   useEffect(() => {
     load()
   }, [rows])

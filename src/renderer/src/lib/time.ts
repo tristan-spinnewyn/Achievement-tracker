@@ -1,4 +1,4 @@
-/** Formate une durée en ms en compte à rebours lisible (Jj HHh MMm, ou HH:MM:SS). */
+/** Formats a duration in ms as a readable countdown (Dd HHh MMm, or HH:MM:SS). */
 export function formatCountdown(ms: number): string {
   if (ms < 0) ms = 0
   const totalSec = Math.floor(ms / 1000)

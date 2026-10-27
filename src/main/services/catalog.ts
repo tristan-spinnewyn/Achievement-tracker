@@ -39,15 +39,15 @@ export function loadSnapshotIntoStore(): boolean {
     store.setCatalog(snapshotToCatalog(snap))
     return true
   } catch (err) {
-    console.error('[catalog] échec de lecture du snapshot :', err)
+    console.error('[catalog] failed to read snapshot:', err)
     return false
   }
 }
 
 /**
- * Aligne le catalogue local sur le snapshot embarqué : seed si vide, ou si le snapshot
- * est plus récent que les données stockées (nouveau build), sans écraser une mise à jour
- * faite à chaud par l'utilisateur (XIVAPI), plus récente que le snapshot.
+ * Aligns the local catalog with the bundled snapshot: seed if empty, or if the snapshot
+ * is newer than the stored data (new build), without overwriting a hot update
+ * made by the user (XIVAPI) that is newer than the snapshot.
  */
 export function seedCatalogIfEmpty(): void {
   const path = snapshotPath()
@@ -61,13 +61,13 @@ export function seedCatalogIfEmpty(): void {
     const fresh = store.catalog.achievements.length === 0 || !stored || (snap.generatedAt ?? '') > stored
     if (!fresh) return
     store.setCatalog(snapshotToCatalog(snap))
-    console.log(`[catalog] catalogue mis à jour (${store.catalog.achievements.length} hauts faits)`)
+    console.log(`[catalog] catalog updated (${store.catalog.achievements.length} achievements)`)
   } catch (err) {
-    console.error('[catalog] échec de lecture du snapshot :', err)
+    console.error('[catalog] failed to read snapshot:', err)
   }
 }
 
-// --- Mise à jour à la volée depuis XIVAPI v2 (même pagination que scripts/build-catalog.ts) ---
+// --- On-the-fly update from XIVAPI v2 (same pagination as scripts/build-catalog.ts) ---
 
 const BASE = 'https://v2.xivapi.com/api/sheet/Achievement'
 const FIELDS = 'Name,Description,Points,Icon,AchievementCategory'
@@ -163,7 +163,7 @@ export async function refreshCatalogFromXivapi(language: Language = 'fr'): Promi
   return getCatalogStatus()
 }
 
-/** Renseigne le patch d'introduction des hauts faits depuis FFXIV Collect (best-effort). */
+/** Fills in the patch that introduced each achievement from FFXIV Collect (best-effort). */
 async function mergeAchievementPatches(achievements: Achievement[]): Promise<void> {
   try {
     const res = await fetch('https://ffxivcollect.com/api/achievements?limit=10000')
@@ -173,6 +173,6 @@ async function mergeAchievementPatches(achievements: Achievement[]): Promise<voi
     for (const r of data.results ?? []) if (r.patch) patchById.set(r.id, r.patch)
     for (const a of achievements) a.patch = patchById.get(a.id) ?? null
   } catch {
-    // patchs facultatifs : on continue sans
+    // patches are optional: carry on without them
   }
 }

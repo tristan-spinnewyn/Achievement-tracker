@@ -43,9 +43,9 @@ describe('isSafeIconPath', () => {
     'noextension',
     '',
     'a/'.repeat(200) + 'b.png'
-  ])('rejette un chemin dangereux ou invalide : %s', (p) => expect(isSafeIconPath(p)).toBe(false))
+  ])('rejects a dangerous or invalid path: %s', (p) => expect(isSafeIconPath(p)).toBe(false))
 
-  it('rejette les valeurs non textuelles', () => {
+  it('rejects non-string values', () => {
     expect(isSafeIconPath(null)).toBe(false)
     expect(isSafeIconPath(undefined)).toBe(false)
     expect(isSafeIconPath(42 as unknown as string)).toBe(false)
@@ -53,13 +53,13 @@ describe('isSafeIconPath', () => {
 })
 
 describe('iconPathToFilename / remoteAssetUrl', () => {
-  it('aplatit le chemin en un nom de fichier sans séparateur', () => {
+  it('flattens the path into a file name without separators', () => {
     expect(iconPathToFilename('ui/icon/062000/062904.tex')).toBe('ui_icon_062000_062904.tex')
     expect(iconPathToFilename('/i/000000/000123.png')).toBe('000000_000123.png')
     expect(iconPathToFilename('../../evil.png')).toBeNull()
   })
 
-  it("construit l'URL XIVAPI v2 avec un chemin relatif (l'API répond 404 sinon)", () => {
+  it('builds the XIVAPI v2 URL with a relative path (the API returns 404 otherwise)', () => {
     expect(remoteAssetUrl('/ui/icon/062000/062904.tex')).toBe(
       'https://v2.xivapi.com/api/asset?path=ui%2Ficon%2F062000%2F062904.tex&format=png'
     )
@@ -67,25 +67,25 @@ describe('iconPathToFilename / remoteAssetUrl', () => {
   })
 })
 
-describe('cache d’icônes', () => {
-  it("renvoie l'URL distante tant que l'icône n'est pas en cache", () => {
+describe('icon cache', () => {
+  it('returns the remote URL while the icon is not cached', () => {
     expect(getIconPath(TEST_ICON)).toBeNull()
     expect(getIconUrl(TEST_ICON)).toBe(remoteAssetUrl(TEST_ICON))
   })
 
-  it('télécharge puis sert l’icône en file:// depuis userData', async () => {
+  it('downloads then serves the icon over file:// from userData', async () => {
     const fetchMock = mockFetchPng()
     const local = await getIconPathWithDownload(TEST_ICON)
     expect(local).toBe(join(CACHE_DIR, 'ui_icon_999000_999001.tex'))
     expect(fetchMock).toHaveBeenCalledWith(remoteAssetUrl(TEST_ICON), expect.anything())
     expect(getIconUrl(TEST_ICON)).toMatch(/^file:\/\/.*ui_icon_999000_999001\.tex$/)
 
-    // Deuxième appel : servi depuis le cache, sans réseau
+    // Second call: served from the cache, no network
     await getIconPathWithDownload(TEST_ICON)
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
-  it("n'écrit rien et ne contacte aucun hôte pour un chemin malveillant", async () => {
+  it('writes nothing and contacts no host for a malicious path', async () => {
     const fetchMock = mockFetchPng()
     const before = existsSync(CACHE_DIR) ? readdirSync(CACHE_DIR).length : 0
     expect(await getIconPathWithDownload('..\\..\\evil.exe')).toBeNull()
@@ -95,13 +95,13 @@ describe('cache d’icônes', () => {
     expect(readdirSync(CACHE_DIR).length).toBe(before)
   })
 
-  it('ignore une réponse HTTP en erreur et une entrée non tableau', async () => {
+  it('ignores an HTTP error response and a non-array input', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('nope', { status: 404 })))
     expect(await getIconPathWithDownload(TEST_ICON)).toBeNull()
     await expect(prefetchIcons('oops' as unknown as string[])).resolves.toBeUndefined()
   })
 
-  it('précharge les icônes valides', async () => {
+  it('prefetches the valid icons', async () => {
     const fetchMock = mockFetchPng()
     await prefetchIcons([TEST_ICON, TEST_ICON])
     await vi.waitFor(() => expect(getIconPath(TEST_ICON)).not.toBeNull())

@@ -13,15 +13,15 @@ export default function UpdateBanner() {
   const [installing, setInstalling] = useState(false)
 
   useEffect(() => {
-    // Récupérer le statut initial
+    // Fetch the initial status
     window.api.updater.status().then((s) => {
       setStatus(s)
     })
 
-    // Écouter les changements de statut en temps réel
+    // Listen for status changes in real time
     const unsubscribe = window.api.updater.onStatusChange((newStatus) => {
       setStatus(newStatus)
-      // Si une nouvelle mise à jour est prête ou disponible, réafficher le bandeau même s'il avait été masqué
+      // If a new update is ready or available, show the banner again even if it was dismissed
       if (newStatus.state === 'downloaded' || newStatus.state === 'available') {
         setDismissed(false)
       }
@@ -30,7 +30,7 @@ export default function UpdateBanner() {
     return unsubscribe
   }, [])
 
-  // Si masqué ou dans un état inactif / à jour
+  // Hidden, or idle / up to date
   if (dismissed || status.state === 'idle' || status.state === 'checking' || status.state === 'not-available') {
     return null
   }

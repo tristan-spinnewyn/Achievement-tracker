@@ -5,8 +5,8 @@ import { useStore } from '../store/useStore'
 import { formatCountdown } from '../lib/time'
 
 /**
- * Alerte affichée une seule fois au lancement si des tâches récurrentes restent
- * à faire pour la période en cours.
+ * Alert shown once at launch when recurring tasks are still
+ * to do for the current period.
  */
 export default function LaunchAlert() {
   const recurring = useStore((s) => s.recurring)
@@ -16,7 +16,7 @@ export default function LaunchAlert() {
   const [checked, setChecked] = useState(false)
   const now = new Date()
 
-  // Déclenche une fois, après le chargement des tâches.
+  // Fires once, after the tasks are loaded.
   useEffect(() => {
     if (checked || recurring.length === 0) return
     const pending = recurring.some((t) => !isDoneThisPeriod(t.type, t.lastCompletedAt))

@@ -14,20 +14,20 @@ import { initUpdater } from './services/updater'
 
 let mainWindow: BrowserWindow | null = null
 
-// Verrou d'instance unique : empêche deux process Electron de se disputer
-// le même fichier de cache (cause classique de « Unable to move the cache: Accès refusé »).
+// Single-instance lock: prevents two Electron processes from fighting over
+// the same cache file (classic cause of "Unable to move the cache: Access denied").
 if (!app.requestSingleInstanceLock()) {
   app.quit()
   process.exit(0)
 }
 
-// Cette app n'utilise pas le cache disque de Chromium :
-//  - le HTML est chargé en local (loadFile)
-//  - les icônes sont déjà mises en cache sur disque (icon-cache/) et servies en file://
-// On désactive donc les caches disque qui échouent à se créer/déplacer sous Windows.
-// Doit être fait avant que Chromium ne démarre.
-app.commandLine.appendSwitch('disable-http-cache') // pas de cache HTTP disque
-app.commandLine.appendSwitch('disable-gpu-shader-disk-cache') // pas de cache shader GPU
+// This app does not use Chromium's disk cache:
+//  - the HTML is loaded locally (loadFile)
+//  - icons are already cached on disk (icon-cache/) and served over file://
+// So we disable the disk caches, which fail to be created/moved on Windows.
+// Must be done before Chromium starts.
+app.commandLine.appendSwitch('disable-http-cache') // no on-disk HTTP cache
+app.commandLine.appendSwitch('disable-gpu-shader-disk-cache') // no GPU shader cache
 
 interface WinState {
   width: number
@@ -45,25 +45,25 @@ function loadWinState(): WinState {
   try {
     if (existsSync(winStatePath())) return JSON.parse(readFileSync(winStatePath(), 'utf8'))
   } catch {
-    // état illisible : on repart sur les valeurs par défaut
+    // unreadable state: fall back to the defaults
   }
   return { width: 1280, height: 820 }
 }
 
 /**
- * Précharge les icônes en arrière-plan.
- * Limite le nombre pour éviter de surcharger le réseau.
+ * Prefetches icons in the background.
+ * Caps the count to avoid flooding the network.
  */
 function prefetchIconsInBackground(): void {
-  // Récupérer les icônes des 100 premiers hauts faits
+  // Take the icons of the first 100 achievements
   const iconPaths = store.catalog.achievements
-    .slice(0, 100) // Limiter à 100 pour ne pas tout charger
+    .slice(0, 100) // Cap at 100 so we don't load everything
     .map(a => a.iconPath)
     .filter(Boolean) as string[]
   
-  // Lancer le préchargement sans attendre
+  // Start the prefetch without waiting
   prefetchIcons(iconPaths).catch(() => {
-    // Ignorer les erreurs de préchargement
+    // Ignore prefetch errors
   })
 }
 
@@ -82,7 +82,7 @@ function showPendingRecurringNotification(): void {
       if (mainWindow) {
         mainWindow.show()
         mainWindow.focus()
-        // Envoyer un message pour changer de vue vers les tâches récurrentes
+        // Ask the renderer to switch to the recurring tasks view
         mainWindow.webContents.send('navigate-to', 'recurring')
       }
     })
@@ -90,7 +90,7 @@ function showPendingRecurringNotification(): void {
   }
 }
 
-/** Ouvre une URL dans le navigateur système, uniquement en HTTPS (jamais file:, smb:, etc.). */
+/** Opens a URL in the system browser, HTTPS only (never file:, smb:, etc.). */
 function openExternalIfSafe(url: string): void {
   try {
     const parsedUrl = new URL(url)
@@ -98,7 +98,7 @@ function openExternalIfSafe(url: string): void {
       shell.openExternal(parsedUrl.href)
     }
   } catch {
-    // Ignorer les URLs invalides ou non autorisées
+    // Ignore invalid or disallowed URLs
   }
 }
 
@@ -117,7 +117,7 @@ function createWindow(): void {
     title: 'FFXIV Achievement Tracker',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      // Le preload n'utilise que contextBridge/ipcRenderer : compatible sandbox.
+      // The preload only uses contextBridge/ipcRenderer: sandbox-compatible.
       sandbox: true,
       contextIsolation: true,
       nodeIntegration: false,
@@ -137,7 +137,7 @@ function createWindow(): void {
         'utf8'
       )
     } catch {
-      // échec d'écriture non bloquant
+      // write failure is non-blocking
     }
   }
   mainWindow.on('close', saveState)
@@ -152,7 +152,7 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
-  // Empêche la fenêtre Electron de naviguer vers un site externe inattendu
+  // Prevent the Electron window from navigating to an unexpected external site
   mainWindow.webContents.on('will-navigate', (event, url) => {
     const isDev = !app.isPackaged && process.env['ELECTRON_RENDERER_URL']
     const isLocal = isDev
@@ -164,7 +164,7 @@ function createWindow(): void {
     }
   })
 
-  // electron-vite injecte ELECTRON_RENDERER_URL en dev (HMR).
+  // electron-vite injects ELECTRON_RENDERER_URL in dev (HMR).
   if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
@@ -172,7 +172,7 @@ function createWindow(): void {
   }
 }
 
-// Si une 2ᵉ instance est lancée, on réaffiche la fenêtre existante au lieu d'en ouvrir une autre.
+// If a second instance is launched, show the existing window instead of opening another one.
 app.on('second-instance', () => {
   if (mainWindow) {
     if (mainWindow.isMinimized()) mainWindow.restore()
@@ -187,33 +187,33 @@ app.whenReady().then(() => {
   seedCatalogIfEmpty()
   seedCollectionsIfEmpty()
   registerIpcHandlers()
-  // Initialiser l'index de recherche FlexSearch
+  // Initialise the FlexSearch search index
   initSearchIndex()
   
-  // Calculer et stocker les difficultés de tous les hauts faits
+  // Compute and store the difficulty of every achievement
   store.setDifficulties(calculateAllDifficulties())
   
-  // Précharger les icônes en arrière-plan
+  // Prefetch icons in the background
   prefetchIconsInBackground()
 
-  // Le renderer n'a besoin d'aucune permission web (caméra, micro, géoloc…) :
-  // les notifications passent par le main process.
+  // The renderer needs no web permission (camera, mic, geolocation…):
+  // notifications go through the main process.
   session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) => callback(false))
   session.defaultSession.setPermissionCheckHandler(() => false)
 
-  // La CSP de production est injectée en <meta> dans index.html au build
-  // (voir electron.vite.config.ts) : elle est versionnée avec la page elle-même.
+  // The production CSP is injected as a <meta> into index.html at build time
+  // (see electron.vite.config.ts): it is versioned with the page itself.
 
   createWindow()
 
-  // Montrer une notification pour les tâches récurrentes en attente
-  // On attend un peu pour que la fenêtre soit prête
+  // Show a notification for pending recurring tasks
+  // Wait a little so the window is ready
   setTimeout(() => {
     showPendingRecurringNotification()
   }, 1000)
 
-  // Planifier les notifications aux resets (quotidien 15h UTC, ravitaillement 20h UTC,
-  // hebdo mardi 8h UTC) ; elles se replanifient automatiquement à chaque période.
+  // Schedule notifications at resets (daily 15:00 UTC, grand company supply 20:00 UTC,
+  // weekly Tuesday 08:00 UTC); they reschedule themselves every period.
   startResetReminders(() => mainWindow)
 
   app.on('activate', () => {

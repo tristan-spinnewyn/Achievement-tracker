@@ -2,7 +2,7 @@ import type { Region, SyncResult } from '@shared/types'
 import * as repo from '../data/repo'
 import { fetchTextWithRetry } from '../utils/fetch'
 
-// Le Lodestone est identique quel que soit le sous-domaine régional ; on mappe juste pour cohérence.
+// The Lodestone is identical whatever the regional subdomain; we only map it for consistency.
 const HOSTS: Record<Region, string> = { na: 'na', eu: 'eu', fr: 'fr', de: 'de', ja: 'jp' }
 const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36'
@@ -16,7 +16,7 @@ export interface ScrapedAchievement {
 
 const delay = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
 
-/** Accepte un ID numérique ou une URL Lodestone complète, renvoie l'ID. */
+/** Accepts a numeric ID or a full Lodestone URL, returns the ID. */
 export function extractCharacterId(input: string): string | null {
   const s = input.trim()
   const urlMatch = s.match(/character\/(\d+)/)
@@ -26,12 +26,12 @@ export function extractCharacterId(input: string): string | null {
 }
 
 /**
- * Analyse une page de hauts faits du Lodestone.
- * Sélecteurs centralisés ici — à ajuster si le HTML du Lodestone change.
- *   - chaque entrée commence par `<li class="entry">`
- *   - l'ID est dans `.../achievement/detail/{ID}/`
- *   - la date d'obtention est le timestamp Unix dans `ldst_strftime(<ts>, ...)`
- *   - le nombre de pages est dans « Page X of Y »
+ * Parses a Lodestone achievements page.
+ * Selectors are centralised here — adjust them if the Lodestone HTML changes.
+ *   - each entry starts with `<li class="entry">`
+ *   - the ID is in `.../achievement/detail/{ID}/`
+ *   - the completion date is the Unix timestamp in `ldst_strftime(<ts>, ...)`
+ *   - the page count is in "Page X of Y"
  */
 function parsePage(html: string): { items: ScrapedAchievement[]; totalPages: number } {
   const items: ScrapedAchievement[] = []
@@ -55,7 +55,7 @@ async function fetchPage(host: string, charId: string, page: number): Promise<st
     const text = await fetchTextWithRetry(url, {
       headers: { 'User-Agent': UA }
     })
-    // Vérifier manuellement le 404 car fetchTextWithRetry ne lève pas sur 404
+    // Check for 404 manually since fetchTextWithRetry does not throw on 404
     if (text.includes('Character Not Found') || text.includes('Page Not Found')) {
       throw new Error('Personnage introuvable (404). Vérifie l’ID Lodestone.')
     }
@@ -85,7 +85,7 @@ export async function scrapeAchievements(
   return { items: all, pages }
 }
 
-/** Synchro à la demande : scrape, applique au store, journalise, met à jour lastSyncAt. */
+/** On-demand sync: scrape, apply to the store, log, update lastSyncAt. */
 export async function syncLodestone(): Promise<SyncResult> {
   const at = new Date().toISOString()
   const settings = repo.getSettings()
@@ -99,8 +99,8 @@ export async function syncLodestone(): Promise<SyncResult> {
     return { ok: false, newlyCompleted: 0, totalCompleted: repo.countCompleted(), message, at }
   }
 
-  // On interroge toujours le Lodestone : impossible de savoir s'il y a de nouveaux
-  // hauts faits sans le lire. `newly` indique ce qui a réellement changé.
+  // Always query the Lodestone: there is no way to know whether there are new
+  // achievements without reading it. `newly` tells what actually changed.
   try {
     const { items, pages } = await scrapeAchievements(charId, settings.region)
     if (items.length === 0) {

@@ -14,12 +14,12 @@ import {
 } from '../src/main/services/backup'
 import { setMockDialog, TEST_USER_DATA } from './stubs/electron'
 
-describe('Sauvegarde miroir automatique dans Mes Documents', () => {
+describe('Automatic mirror backup in My Documents', () => {
   const docFolder = getDocumentsBackupFolder()
   const docPath = getDocumentsBackupPath()
 
   beforeEach(() => {
-    // Nettoyer le dossier temporaire
+    // Clean up the temporary folder
     if (existsSync(docPath)) {
       try {
         rmSync(docPath, { force: true })
@@ -29,12 +29,12 @@ describe('Sauvegarde miroir automatique dans Mes Documents', () => {
     }
   })
 
-  it('génère un chemin valide dans le dossier Documents', () => {
+  it('builds a valid path in the Documents folder', () => {
     expect(docFolder).toContain('FFXIV Achievement Tracker')
     expect(docPath).toContain('userdata-backup.json')
   })
 
-  it('écrit automatiquement une copie miroir lors de store.saveUser()', () => {
+  it('automatically writes a mirror copy on store.saveUser()', () => {
     store.init()
     store.user.settings.autoBackupDocuments = true
     store.user.progress['123'] = {
@@ -53,7 +53,7 @@ describe('Sauvegarde miroir automatique dans Mes Documents', () => {
     expect(content.progress['123'].completed).toBe(true)
   })
 
-  it('fournit des informations d’état fiables via getAutoBackupInfo()', () => {
+  it('provides reliable status information via getAutoBackupInfo()', () => {
     store.init()
     store.user.settings.autoBackupDocuments = true
     store.saveUser()
@@ -66,7 +66,7 @@ describe('Sauvegarde miroir automatique dans Mes Documents', () => {
     expect(info.sizeBytes).toBeGreaterThan(0)
   })
 
-  it('ne met pas à jour le miroir Documents si autoBackupDocuments est false', () => {
+  it('does not update the Documents mirror when autoBackupDocuments is false', () => {
     store.init()
     store.user.settings.autoBackupDocuments = false
     if (existsSync(docPath)) rmSync(docPath, { force: true })
@@ -76,8 +76,8 @@ describe('Sauvegarde miroir automatique dans Mes Documents', () => {
     expect(existsSync(docPath)).toBe(false)
   })
 
-  it('restaure automatiquement depuis Documents au démarrage si les données locales sont vierges', () => {
-    // 1. Écrire une fausse sauvegarde dans Documents
+  it('automatically restores from Documents at startup when local data is empty', () => {
+    // 1. Write a fake backup into Documents
     mkdirSync(docFolder, { recursive: true })
     const dummyBackup = {
       settings: { lodestoneCharacterId: '999999' },
@@ -91,14 +91,14 @@ describe('Sauvegarde miroir automatique dans Mes Documents', () => {
     const { writeFileSync } = require('fs')
     writeFileSync(docPath, JSON.stringify(dummyBackup), 'utf8')
 
-    // 2. Supprimer userdata.json dans userData pour simuler un nouveau PC
+    // 2. Delete userdata.json in userData to simulate a new PC
     const userJsonPath = join(TEST_USER_DATA, 'userdata.json')
     if (existsSync(userJsonPath)) rmSync(userJsonPath, { force: true })
 
-    // 3. Initialiser le store
+    // 3. Initialise the store
     store.init()
 
-    // Le store doit avoir restauré les données depuis le backup Documents
+    // The store must have restored the data from the Documents backup
     expect(store.user.progress['4032']).toBeDefined()
     expect(store.user.progress['4032'].completed).toBe(true)
     expect(store.user.collections['beast:1']).toBeDefined()
@@ -106,21 +106,21 @@ describe('Sauvegarde miroir automatique dans Mes Documents', () => {
     expect(store.user.settings.lodestoneCharacterId).toBe('999999')
   })
 
-  it('ouvre le dossier de sauvegarde dans Documents', async () => {
+  it('opens the backup folder in Documents', async () => {
     const folder = await openDocumentsBackupFolder()
     expect(folder).toBe(docFolder)
     expect(existsSync(folder)).toBe(true)
   })
 
-  it('gère l’exportation de données utilisateur (annulée ou confirmée)', async () => {
+  it('handles user data export (cancelled or confirmed)', async () => {
     store.init()
-    // 1. Annulé
+    // 1. Cancelled
     setMockDialog.save({ canceled: true })
     const resCancel = await exportUserData()
     expect(resCancel.ok).toBe(false)
     expect(resCancel.canceled).toBe(true)
 
-    // 2. Confirmé
+    // 2. Confirmed
     const exportFile = join(tmpdir(), 'export-test.json')
     setMockDialog.save({ canceled: false, filePath: exportFile })
     const resSuccess = await exportUserData()
@@ -132,16 +132,16 @@ describe('Sauvegarde miroir automatique dans Mes Documents', () => {
     rmSync(exportFile, { force: true })
   })
 
-  it('gère l’importation de données utilisateur (annulée, invalide ou valide)', async () => {
+  it('handles user data import (cancelled, invalid or valid)', async () => {
     const { writeFileSync } = require('fs')
     store.init()
-    // 1. Annulé
+    // 1. Cancelled
     setMockDialog.open({ canceled: true, filePaths: [] })
     const resCancel = await importUserData()
     expect(resCancel.ok).toBe(false)
     expect(resCancel.canceled).toBe(true)
 
-    // 2. Fichier invalide
+    // 2. Invalid file
     const invalidFile = join(tmpdir(), 'invalid-test.json')
     writeFileSync(invalidFile, JSON.stringify({ random: 123 }), 'utf8')
     setMockDialog.open({ canceled: false, filePaths: [invalidFile] })
@@ -150,7 +150,7 @@ describe('Sauvegarde miroir automatique dans Mes Documents', () => {
     expect(resInvalid.error).toContain('invalide')
     rmSync(invalidFile, { force: true })
 
-    // 3. Fichier valide
+    // 3. Valid file
     const validFile = join(tmpdir(), 'valid-test.json')
     writeFileSync(
       validFile,
@@ -168,7 +168,7 @@ describe('Sauvegarde miroir automatique dans Mes Documents', () => {
     rmSync(validFile, { force: true })
   })
 
-  it('assainit une sauvegarde importée (fichier non fiable)', () => {
+  it('sanitises an imported backup (untrusted file)', () => {
     expect(sanitizeImportedUser(null)).toBeNull()
     expect(sanitizeImportedUser([1, 2])).toBeNull()
     expect(sanitizeImportedUser({ settings: 'oops' })).toBeNull()

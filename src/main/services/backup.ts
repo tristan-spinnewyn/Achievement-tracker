@@ -5,7 +5,7 @@ import type { AutoBackupInfo, Settings } from '@shared/types'
 import { store, type UserData } from '../data/store'
 import { isSafeIconPath } from '../utils/icons'
 
-/** Taille max d'une sauvegarde importée (les vraies font quelques centaines de Ko). */
+/** Max size of an imported backup (real ones are a few hundred KB). */
 const MAX_BACKUP_BYTES = 50 * 1024 * 1024
 
 const RECORD_KEYS = ['progress', 'userMeta', 'tagsByAchievement', 'collections', 'collectionHashCache'] as const
@@ -17,7 +17,7 @@ const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v)
 const isNullableString = (v: unknown): v is string | null => v === null || typeof v === 'string'
 
-/** Ne garde que les paramètres connus, avec le bon type (les autres reprennent leur défaut). */
+/** Keeps only known settings, with the right type (the others fall back to their default). */
 function sanitizeSettings(raw: Record<string, unknown>): Partial<Settings> {
   const out: Partial<Settings> = {}
   if (isNullableString(raw.lodestoneCharacterId)) out.lodestoneCharacterId = raw.lodestoneCharacterId
@@ -35,9 +35,9 @@ function sanitizeSettings(raw: Record<string, unknown>): Partial<Settings> {
 }
 
 /**
- * Valide la structure d'une sauvegarde importée (fichier non fiable) :
- * clés inconnues ignorées, types vérifiés, chemins d'icônes suspects neutralisés.
- * Retourne null si le fichier n'a pas la forme d'une sauvegarde.
+ * Validates the structure of an imported backup (untrusted file):
+ * unknown keys ignored, types checked, suspicious icon paths neutralised.
+ * Returns null if the file does not look like a backup.
  */
 export function sanitizeImportedUser(raw: unknown): Partial<UserData> | null {
   if (!isRecord(raw) || (!raw.settings && !raw.progress && !raw.collections)) return null
@@ -113,7 +113,7 @@ export async function openDocumentsBackupFolder(): Promise<string> {
   return folder
 }
 
-/** Exporte toutes les données utilisateur vers un fichier JSON choisi par l'utilisateur. */
+/** Exports all user data to a JSON file chosen by the user. */
 export async function exportUserData(): Promise<BackupResult> {
   const stamp = new Date().toISOString().slice(0, 10)
   const res = await dialog.showSaveDialog({
@@ -130,7 +130,7 @@ export async function exportUserData(): Promise<BackupResult> {
   }
 }
 
-/** Importe un fichier de sauvegarde et remplace les données utilisateur. */
+/** Imports a backup file and replaces the user data. */
 export async function importUserData(): Promise<BackupResult> {
   const res = await dialog.showOpenDialog({
     title: 'Importer une sauvegarde',

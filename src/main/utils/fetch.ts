@@ -1,6 +1,6 @@
 /**
- * Utilitaires de fetch avec gestion des erreurs réseau robuste.
- * Retry automatique avec exponential backoff.
+ * Fetch utilities with robust network error handling.
+ * Automatic retry with exponential backoff.
  */
 
 const DEFAULT_RETRIES = 3
@@ -9,7 +9,7 @@ const MAX_DELAY_MS = 10000
 const FETCH_TIMEOUT_MS = 30000
 
 /**
- * Erreur personnalisée pour les échecs de fetch.
+ * Custom error for fetch failures.
  */
 export class FetchError extends Error {
   constructor(
@@ -23,13 +23,13 @@ export class FetchError extends Error {
 }
 
 /**
- * Effectue un fetch avec retry et exponential backoff.
- * @param url - URL à fetch
- * @param options - Options de fetch (headers, method, etc.)
- * @param retries - Nombre de tentatives (par défaut: 3)
- * @param baseDelay - Délai de base en ms (par défaut: 1000)
- * @param timeout - Timeout en ms (par défaut: 30000)
- * @returns Réponse Response
+ * Performs a fetch with retry and exponential backoff.
+ * @param url - URL to fetch
+ * @param options - Fetch options (headers, method, etc.)
+ * @param retries - Number of retries (default: 3)
+ * @param baseDelay - Base delay in ms (default: 1000)
+ * @param timeout - Timeout in ms (default: 30000)
+ * @returns The Response
  */
 export async function fetchWithRetry(
   url: string,
@@ -53,7 +53,7 @@ export async function fetchWithRetry(
 
       clearTimeout(timeoutId)
 
-      // Considérer les erreurs HTTP 5xx et 429 comme réessayables
+      // Treat HTTP 5xx and 429 errors as retryable
       if (response.ok || !isRetryableStatus(response.status)) {
         return response
       }
@@ -68,17 +68,17 @@ export async function fetchWithRetry(
       lastError = error
     }
 
-    // Ne pas attendre après la dernière tentative
+    // Do not wait after the last attempt
     if (attempt >= retries) {
       break
     }
 
-    // Calculer le délai avec exponential backoff + jitter
+    // Compute the delay with exponential backoff + jitter
     const delay = calculateBackoffDelay(attempt, baseDelay)
     await new Promise((resolve) => setTimeout(resolve, delay))
   }
 
-  // Si on arrive ici, toutes les tentatives ont échoué
+  // If we get here, every attempt failed
   if (lastError instanceof FetchError) {
     throw lastError
   }
@@ -90,7 +90,7 @@ export async function fetchWithRetry(
 }
 
 /**
- * Effectue un fetch et retourne le texte.
+ * Performs a fetch and returns the text.
  */
 export async function fetchTextWithRetry(
   url: string,
@@ -104,16 +104,16 @@ export async function fetchTextWithRetry(
 }
 
 /**
- * Vérifie si un status HTTP est réessayable.
+ * Checks whether an HTTP status is retryable.
  */
 function isRetryableStatus(status: number): boolean {
-  // Réessayer sur les erreurs serveur (5xx) et Too Many Requests (429)
+  // Retry on server errors (5xx) and Too Many Requests (429)
   return status >= 500 || status === 429
 }
 
 /**
- * Calcule le délai avec exponential backoff et jitter.
- * Jitter = randomisation pour éviter la thundering herd problem.
+ * Computes the delay with exponential backoff and jitter.
+ * Jitter = randomisation to avoid the thundering herd problem.
  */
 function calculateBackoffDelay(attempt: number, baseDelay: number): number {
   const exponentialDelay = baseDelay * Math.pow(2, attempt)

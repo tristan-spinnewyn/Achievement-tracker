@@ -1,8 +1,8 @@
 /**
- * Génère resources/catalog-snapshot.json depuis XIVAPI v2 (données de jeu, FR).
- * Le catalogue est ensuite chargé localement au 1er lancement de l'app.
+ * Generates resources/catalog-snapshot.json from XIVAPI v2 (game data, FR).
+ * The catalog is then loaded locally on the app's first launch.
  *
- * Lancer avec: npm run build:catalog
+ * Run with: npm run build:catalog
  */
 import { writeFileSync, mkdirSync } from 'fs'
 import { resolve, dirname } from 'path'
@@ -16,7 +16,7 @@ import type {
 const BASE = 'https://v2.xivapi.com/api/sheet/Achievement'
 const LANGUAGE = 'fr'
 const PAGE_SIZE = 500
-// La relation AchievementCategory s'étend automatiquement (Name/Order + AchievementKind imbriqué).
+// The AchievementCategory relation is expanded automatically (Name/Order + nested AchievementKind).
 const FIELDS = 'Name,Description,Points,Icon,AchievementCategory'
 const POLITE_DELAY_MS = 150
 
@@ -74,7 +74,7 @@ async function main(): Promise<void> {
     for (const row of rows) {
       const f = row.fields ?? {}
       const name = (f.Name ?? '').trim()
-      if (!name) continue // lignes vides / hauts faits non publiés
+      if (!name) continue // empty rows / unreleased achievements
 
       const cat = f.AchievementCategory
       const categoryId = relId(cat)
@@ -112,12 +112,12 @@ async function main(): Promise<void> {
 
     after = rows[rows.length - 1].row_id
     page += 1
-    process.stdout.write(`\rPage ${page} — ${achievements.length} hauts faits…`)
+    process.stdout.write(`\rPage ${page} — ${achievements.length} achievements…`)
     await new Promise((r) => setTimeout(r, POLITE_DELAY_MS))
-    if (page > 50) break // garde-fou
+    if (page > 50) break // safety net
   }
 
-  // Patchs et informations saisonnières (FFXIV Collect, à jour avec le jeu).
+  // Patches and seasonal information (FFXIV Collect, kept up to date with the game).
   let withPatch = 0
   let withSeasonal = 0
   try {
@@ -160,10 +160,10 @@ async function main(): Promise<void> {
       }
     }
   } catch (err) {
-    console.warn('\n⚠ patchs/événements indisponibles :', err instanceof Error ? err.message : err)
+    console.warn('\n⚠ patches/events unavailable:', err instanceof Error ? err.message : err)
   }
-  console.log(`\n✔ ${withPatch} hauts faits avec patch`)
-  console.log(`✔ ${withSeasonal} hauts faits saisonniers identifiés`)
+  console.log(`\n✔ ${withPatch} achievements with a patch`)
+  console.log(`✔ ${withSeasonal} seasonal achievements identified`)
 
   const snapshot: CatalogSnapshot = {
     generatedAt: new Date().toISOString(),
@@ -178,13 +178,13 @@ async function main(): Promise<void> {
   writeFileSync(out, JSON.stringify(snapshot), 'utf8')
 
   console.log(
-    `\n✔ ${achievements.length} hauts faits · ${categories.size} catégories · ${kinds.size} types`
+    `\n✔ ${achievements.length} achievements · ${categories.size} categories · ${kinds.size} kinds`
   )
-  console.log(`✔ Snapshot écrit : ${out}`)
-  console.log(`✔ Version de jeu : ${gameVersion}`)
+  console.log(`✔ Snapshot written: ${out}`)
+  console.log(`✔ Game version: ${gameVersion}`)
 }
 
 main().catch((err) => {
-  console.error('\n✖ Échec de génération du catalogue :', err)
+  console.error('\n✖ Catalog generation failed:', err)
   process.exit(1)
 })

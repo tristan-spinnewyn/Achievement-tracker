@@ -1,16 +1,16 @@
 ﻿/**
- * Algorithme de calcul de difficulté pour les hauts faits FFXIV.
+ * Difficulty scoring algorithm for FFXIV achievements.
  *
- * Modèle additif borné : on additionne des composantes indépendantes, chacune
- * plafonnée, plutôt que de multiplier tout le score par un facteur de patch
- * (l'ancienne approche confondait « récent » et « difficile »).
+ * Bounded additive model: independent components are summed, each one
+ * capped, rather than multiplying the whole score by a patch factor
+ * (the previous approach conflated "recent" with "difficult").
  *
- *   difficulté = points + palier de contenu + grind + défi
- *              + contexte (type/catégorie) + récence + saisonnier
+ *   difficulty = points + content tier + grind + challenge
+ *              + context (kind/category) + recency + seasonal
  *
- * Le signal dominant en FFXIV n'est pas le nombre de points (un Ultime ≈ 50 pts,
- * un Sadique ≈ 10 pts) mais le PALIER de contenu (Ultime/Sadique/Extrême) et le
- * GRIND (« vaincre 10 000 ennemis »), souvent inscrits dans le NOM du haut fait.
+ * The dominant signal in FFXIV is not the point count (an Ultimate ≈ 50 pts,
+ * a Savage ≈ 10 pts) but the content TIER (Ultimate/Savage/Extreme) and the
+ * GRIND ("defeat 10,000 enemies"), often spelled out in the achievement NAME.
  */
 
 import { store } from '../data/store'
@@ -22,106 +22,106 @@ import type {
 } from '@shared/types'
 
 // ============================================================================
-// Poids contextuels par défaut (personnalisables via les paramètres)
-// Note : ces poids ne servent plus de score brut mais d'un *nudge* contextuel
-// borné (cf. CONTEXT_CAP). On prend le max(kind, catégorie) pour éviter le
-// double comptage type+catégorie.
+// Default context weights (customisable via settings)
+// Note: these weights are no longer a raw score but a bounded contextual
+// *nudge* (see CONTEXT_CAP). We take max(kind, category) to avoid
+// double-counting kind + category.
 // ============================================================================
 
-/** Poids par type (kindId) — plus le type est exigeant, plus le poids est élevé. */
+/** Weight per kind (kindId) — the more demanding the kind, the higher the weight. */
 export const DEFAULT_KIND_WEIGHTS: Record<number, number> = {
-  0: 0,   // Inconnu/Non classé
-  1: 30,  // Combats (PvE)
+  0: 0,   // Unknown / unclassified
+  1: 30,  // Battle (PvE)
   2: 25,  // JcJ (PvP)
-  3: 10,  // Personnage (niveaux, jobs)
-  4: 15,  // Objets (collection d'objets)
-  5: 20,  // Synthèse et récolte (crafting/gathering)
-  8: 5,   // Quêtes
+  3: 10,  // Character (levels, jobs)
+  4: 15,  // Items (item collection)
+  5: 20,  // Crafting & gathering
+  8: 5,   // Quests
   11: 20, // Exploration
-  12: 25, // Grandes compagnies
-  13: 40  // Legacy (contenu ancien/rare)
+  12: 25, // Grand Companies
+  13: 40  // Legacy (old / rare content)
 }
 
-/** Poids par catégorie — certaines catégories sont plus exigeantes que d'autres. */
+/** Weight per category — some categories are more demanding than others. */
 export const DEFAULT_CATEGORY_WEIGHTS: Record<number, number> = {
-  // ========== Combats (kindId: 1) ==========
-  54: 40, // Combats généraux
-  5: 45,  // Contrats de chasse
-  6: 40,  // Chasse aux trésors
-  2: 35,  // Donjons
-  10: 38, // Front (PvP)
-  9: 37,  // L'Antre des loups (FATEs)
-  3: 50,  // Défi
-  4: 55,  // Raids (standard)
-  // ========== Personnage (kindId: 3) ==========
-  12: 10, // Général
-  13: 15, // Disciples de la guerre
-  14: 15, // Disciples de la magie
-  15: 20, // Disciples de la main
-  16: 20, // Disciples de la terre
-  // ========== Objets (kindId: 4) ==========
-  19: 15, // Général (Objets)
-  20: 18, // Devises
-  21: 22, // Recyclage
-  22: 20, // Objets collectionnables
-  23: 25, // Matérias
-  62: 60, // Armes antiques (relique)
-  63: 60, // Armes du zodiaque
-  64: 65, // Armes anima
-  65: 65, // Armes Eurêka
-  68: 65, // Armes de la résistance
-  70: 28, // Outils de Cielacier
-  75: 70, // Armes des Manderville
-  78: 30, // Outils des merveilles
-  81: 70, // Armes fantômes
-  82: 35, // Outils cosmiques
-  // ========== Synthèse et récolte (kindId: 5) ==========
-  69: 25, // Toutes classes
-  24: 30, // Menuisier
-  25: 30, // Forgeron
-  26: 30, // Armurier
-  27: 30, // Orfèvre
-  28: 30, // Tanneur
-  29: 30, // Couturier
-  30: 30, // Alchimiste
-  31: 30, // Cuisinier
-  32: 35, // Mineur
-  33: 35, // Botaniste
-  34: 35, // Pêcheur
-  // ========== Quêtes (kindId: 8) ==========
-  35: 10, // Général (Quêtes)
-  36: 12, // Mandats
-  37: 15, // Quêtes des peuples alliés
-  38: 18, // Événements saisonniers
+  // ========== Battle (kindId: 1) ==========
+  54: 40, // General battle
+  5: 45,  // Hunts
+  6: 40,  // Treasure hunts
+  2: 35,  // Dungeons
+  10: 38, // Frontline (PvP)
+  9: 37,  // The Wolves' Den (FATEs)
+  3: 50,  // Trials
+  4: 55,  // Raids (normal)
+  // ========== Character (kindId: 3) ==========
+  12: 10, // General
+  13: 15, // Disciples of War
+  14: 15, // Disciples of Magic
+  15: 20, // Disciples of the Hand
+  16: 20, // Disciples of the Land
+  // ========== Items (kindId: 4) ==========
+  19: 15, // General (Items)
+  20: 18, // Currencies
+  21: 22, // Desynthesis
+  22: 20, // Collectables
+  23: 25, // Materia
+  62: 60, // Relic weapons (ARR)
+  63: 60, // Zodiac weapons
+  64: 65, // Anima weapons
+  65: 65, // Eureka weapons
+  68: 65, // Resistance weapons
+  70: 28, // Skysteel tools
+  75: 70, // Manderville weapons
+  78: 30, // Splendorous tools
+  81: 70, // Phantom weapons
+  82: 35, // Cosmic tools
+  // ========== Crafting & gathering (kindId: 5) ==========
+  69: 25, // All classes
+  24: 30, // Carpenter
+  25: 30, // Blacksmith
+  26: 30, // Armorer
+  27: 30, // Goldsmith
+  28: 30, // Leatherworker
+  29: 30, // Weaver
+  30: 30, // Alchemist
+  31: 30, // Culinarian
+  32: 35, // Miner
+  33: 35, // Botanist
+  34: 35, // Fisher
+  // ========== Quests (kindId: 8) ==========
+  35: 10, // General (Quests)
+  36: 12, // Levequests
+  37: 15, // Allied society quests
+  38: 18, // Seasonal events
   // ========== Exploration (kindId: 11) ==========
-  39: 25, // Carnet d'exploration
+  39: 25, // Sightseeing log
   40: 22, // Noscea
-  41: 22, // Forêt de Sombrelinceul
+  41: 22, // Black Shroud
   42: 22, // Thanalan
   43: 22, // Coerthas
   45: 22, // Abalathia
   46: 22, // Dravania
   47: 22, // Gyr Abania
   48: 22, // Othard
-  71: 30, // Missions d'exploration
-  72: 25, // Mers du Nord
+  71: 30, // Exploration missions
+  72: 25, // Northern seas
   73: 25, // Ilsabard
-  74: 15, // Autres
-  76: 18, // Quêtes de job/rôle
-  77: 18, // Quêtes de maelstrom
+  74: 15, // Other
+  76: 18, // Job / role quests
+  77: 18, // Maelstrom quests
   79: 20, // Yok Tural
   80: 20, // Xak Tural
-  // ========== Grandes compagnies (kindId: 12) ==========
-  50: 20, // Général
+  // ========== Grand Companies (kindId: 12) ==========
+  50: 20, // General
   51: 25, // Maelstrom
-  52: 25, // Ordre des Deux Vipères
-  53: 25  // Immortels
+  52: 25, // Order of the Twin Adder
+  53: 25  // Immortal Flames
 }
 
 /**
- * Facteur de récence par patch — utilisé uniquement pour un petit bonus additif
- * (le contenu de la dernière extension est légèrement plus dur : sous-stuffé,
- * mécaniques inédites). ~0.5 (le plus ancien) .. 1.2 (le plus récent).
+ * Recency factor per patch — only used for a small additive bonus
+ * (latest expansion content is slightly harder: under-geared,
+ * new mechanics). ~0.5 (oldest) .. 1.2 (most recent).
  */
 export const DEFAULT_PATCH_WEIGHTS: Record<string, number> = {
   // Dawntrail (7.x)
@@ -151,7 +151,7 @@ export const DEFAULT_PATCH_WEIGHTS: Record<string, number> = {
 }
 
 // ============================================================================
-// Plafonds des composantes (la somme s'aligne sur les seuils de classification)
+// Component caps (the sum lines up with the classification thresholds)
 // ============================================================================
 
 const POINTS_CAP = 35
@@ -163,7 +163,7 @@ const RECENCY_CAP = 8
 const SEASONAL_BONUS = 8
 
 // ============================================================================
-// Constantes de classification
+// Classification constants
 // ============================================================================
 
 const DIFFICULTY_THRESHOLDS: Record<
@@ -185,14 +185,14 @@ const DEFAULT_WEIGHTS: DifficultyWeights = {
 }
 
 // ============================================================================
-// Helpers d'analyse textuelle (nom + description, FR et EN)
+// Text analysis helpers (name + description, FR and EN)
 // ============================================================================
 
 const clamp = (v: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, v))
 
 /**
- * Palier de contenu — le signal de difficulté le plus fort. On prend le palier
- * le plus élevé qui matche (pas une somme).
+ * Content tier — the strongest difficulty signal. We take the highest
+ * matching tier (not a sum).
  */
 function tierScore(text: string): number {
   const savage = /sadique|savage|élitiste/.test(text)
@@ -209,7 +209,7 @@ function tierScore(text: string): number {
 const GRIND_VERBS =
   /vaincre|battre|tuer|abattre|récolt|pêch|synthétis|fabriqu|obtenir|gagner|remport|termin|complét|atteindre|accumul|defeat|complet|gather|catch|craft|reach\b|earn|win\b|obtain|collect/
 
-/** Fusionne les groupes de milliers (10 000) puis renvoie le plus grand entier. */
+/** Merges thousands groups (10 000) then returns the largest integer. */
 function largestNumber(text: string): number {
   const normalized = text.replace(/(\d)[\s,](?=\d{3}\b)/g, '$1')
   let max = 0
@@ -220,7 +220,7 @@ function largestNumber(text: string): number {
   return max
 }
 
-/** Grind — gros volumes répétitifs (vaincre N ennemis, atteindre le rang N…). */
+/** Grind — large repetitive volumes (defeat N enemies, reach rank N…). */
 function grindScore(text: string): number {
   if (!GRIND_VERBS.test(text)) return 0
   const n = largestNumber(text)
@@ -228,7 +228,7 @@ function grindScore(text: string): number {
   return clamp(8 * (Math.log10(n) - 1.3), 0, GRIND_CAP)
 }
 
-/** Contraintes de défi qui se cumulent par-dessus un palier (no-hit, solo, speedrun…). */
+/** Challenge constraints that stack on top of a tier (no-hit, solo, speedrun…). */
 function challengeScore(text: string): number {
   let s = 0
   if (/sans subir|sans être|sans qu['e]|sans aucun|sans prendre|deathless|without taking|no[- ]?hit/.test(text))
@@ -238,7 +238,7 @@ function challengeScore(text: string): number {
   return Math.min(CHALLENGE_CAP, s)
 }
 
-/** Facteur de récence robuste même si le patch est absent de la table (gap 6.x). */
+/** Recency factor that stays robust when the patch is missing from the table (6.x gap). */
 function patchFactor(patch: string | null, patchWeights: Record<string, number>): number {
   if (patch && patch in patchWeights) return patchWeights[patch]
   const major = Number((patch ?? '').split('.')[0]) || 0
@@ -250,18 +250,18 @@ function patchFactor(patch: string | null, patchWeights: Record<string, number>)
   return 0.5
 }
 
-/** Bonus de récence additif (0..RECENCY_CAP), du plus ancien (0) au plus récent. */
+/** Additive recency bonus (0..RECENCY_CAP), from oldest (0) to most recent. */
 function recencyBonus(patch: string | null, patchWeights: Record<string, number>): number {
   const f = patchFactor(patch, patchWeights)
   return clamp(((f - 0.8) / 0.4) * RECENCY_CAP, 0, RECENCY_CAP)
 }
 
 // ============================================================================
-// Fonctions principales
+// Main functions
 // ============================================================================
 
 /**
- * Calcule la difficulté d'un haut fait unique.
+ * Computes the difficulty of a single achievement.
  */
 export function calculateDifficulty(
   achievement: Achievement,
@@ -270,27 +270,27 @@ export function calculateDifficulty(
   const points = achievement.points || 0
   const text = `${achievement.name || ''} ${achievement.description || ''}`.toLowerCase()
 
-  // 1. Points — signal intégré de Square, courbe saturante (pas de runaway).
+  // 1. Points — Square's built-in signal, saturating curve (no runaway).
   const pointsScore = POINTS_CAP * (1 - Math.exp(-points / 40))
 
-  // 2. Palier de contenu (Ultime/Sadique/Extrême…) — borné à TIER_CAP par construction.
+  // 2. Content tier (Ultimate/Savage/Extreme…) — bounded by TIER_CAP by design.
   const tier = Math.min(TIER_CAP, tierScore(text))
 
-  // 3. Grind (gros volumes répétitifs).
+  // 3. Grind (large repetitive volumes).
   const grind = grindScore(text)
 
-  // 4. Contraintes de défi (no-hit, solo, speedrun).
+  // 4. Challenge constraints (no-hit, solo, speedrun).
   const challenge = challengeScore(text)
 
-  // 5. Contexte type/catégorie — max() borné pour éviter le double comptage.
+  // 5. Kind/category context — bounded max() to avoid double-counting.
   const kindWeight = weights.kindWeights[achievement.kindId] ?? 0
   const categoryWeight = weights.categoryWeights[achievement.categoryId] ?? 0
   const context = Math.min(CONTEXT_CAP, Math.max(kindWeight, categoryWeight) * 0.3)
 
-  // 6. Récence — petit bonus additif (et non un multiplicateur global).
+  // 6. Recency — small additive bonus (not a global multiplier).
   const recency = recencyBonus(achievement.patch, weights.patchWeights)
 
-  // 7. Saisonnier/événementiel — contenu manquable, présence requise dans une fenêtre.
+  // 7. Seasonal / event — missable content, requires being present during a window.
   const seasonal = achievement.isSeasonal ? SEASONAL_BONUS : 0
 
   const score = pointsScore + tier + grind + challenge + context + recency + seasonal
@@ -299,7 +299,7 @@ export function calculateDifficulty(
 }
 
 /**
- * Classifie le score en niveau de difficulté.
+ * Classifies the score into a difficulty level.
  */
 function classifyDifficulty(score: number): AchievementDifficulty {
   for (const [level, threshold] of Object.entries(DIFFICULTY_THRESHOLDS)) {
@@ -313,7 +313,7 @@ function classifyDifficulty(score: number): AchievementDifficulty {
       }
     }
   }
-  // Fallback pour les scores extrêmes
+  // Fallback for extreme scores
   const t = DIFFICULTY_THRESHOLDS.extreme
   return {
     score: Math.round(score * 10) / 10,
@@ -325,7 +325,7 @@ function classifyDifficulty(score: number): AchievementDifficulty {
 }
 
 /**
- * Calcule la difficulté pour TOUS les hauts faits du catalogue.
+ * Computes the difficulty of ALL achievements in the catalog.
  */
 export function calculateAllDifficulties(
   achievements: Achievement[] = store.catalog.achievements,
@@ -339,7 +339,7 @@ export function calculateAllDifficulties(
 }
 
 /**
- * Met à jour les poids personnalisés.
+ * Updates the custom weights.
  */
 export function updateDifficultyWeights(
   customWeights: Partial<DifficultyWeights>
@@ -352,7 +352,7 @@ export function updateDifficultyWeights(
 }
 
 /**
- * Statistiques de difficulté pour le dashboard.
+ * Difficulty statistics for the dashboard.
  */
 export function getDifficultyStats(difficulties: Map<number, AchievementDifficulty>): {
   total: number
@@ -402,7 +402,7 @@ export function getDifficultyStats(difficulties: Map<number, AchievementDifficul
 }
 
 /**
- * Filtre les hauts faits par niveau de difficulté.
+ * Filters achievements by difficulty level.
  */
 export function filterByDifficulty(
   difficulties: Map<number, AchievementDifficulty>,
@@ -417,7 +417,7 @@ export function filterByDifficulty(
 }
 
 /**
- * Trie les hauts faits par difficulté (du plus facile au plus difficile par défaut).
+ * Sorts achievements by difficulty (easiest to hardest by default).
  */
 export function sortByDifficulty(
   difficulties: Map<number, AchievementDifficulty>,

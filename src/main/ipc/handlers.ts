@@ -37,37 +37,37 @@ import type {
 
 const APP_PAGE_URL = pathToFileURL(join(__dirname, '../renderer/index.html')).href
 
-/** Enregistre un canal en refusant tout appel qui ne vient pas de la page de l'app. */
+/** Registers a channel, rejecting any call that does not come from the app page. */
 function handle(channel: string, listener: (event: IpcMainInvokeEvent, ...args: any[]) => unknown): void {
   ipcMain.handle(channel, (event, ...args) => {
     const devUrl = app.isPackaged ? null : process.env['ELECTRON_RENDERER_URL']
     if (!isTrustedSender(event.senderFrame?.url, APP_PAGE_URL, devUrl)) {
-      throw new Error(`IPC refusé (émetteur non autorisé) : ${channel}`)
+      throw new Error(`IPC rejected (untrusted sender): ${channel}`)
     }
     return listener(event, ...args)
   })
 }
 
-/** Enregistre tous les canaux IPC (un seul appel au démarrage). */
+/** Registers every IPC channel (called once at startup). */
 export function registerIpcHandlers(): void {
-  // Catalogue
+  // Catalog
   handle('catalog:status', () => repo.getCatalogStatus())
   handle('catalog:refresh', async () => {
     const status = await refreshCatalogFromXivapi(repo.getSettings().language)
-    // Le catalogue a changé : on reconstruit l'index de recherche et on recalcule
-    // les difficultés pour qu'ils ne soient pas périmés jusqu'au prochain démarrage.
+    // The catalog changed: rebuild the search index and recompute the
+    // difficulties so they are not stale until the next startup.
     updateSearchIndex()
     store.setDifficulties(calculateAllDifficulties())
     return status
   })
 
-  // Hauts faits (lecture)
+  // Achievements (read)
   handle('achievements:list', (_e, filter: AchievementFilter) => repo.listAchievements(filter))
   handle('achievements:focusList', () => repo.getFocusList())
   handle('achievements:latestPatch', () => repo.getLatestPatchSummary())
   handle('achievements:get', (_e, id: number) => repo.getAchievementRow(id))
 
-  // Hauts faits (écriture)
+  // Achievements (write)
   handle('achievements:setCompletion', (_e, p: { id: number; completed: boolean }) => {
     repo.setManualCompletion(p.id, p.completed)
     return true
@@ -97,14 +97,14 @@ export function registerIpcHandlers(): void {
     return true
   })
 
-  // Métadonnées (filtres)
+  // Metadata (filters)
   handle('meta:kinds', () => repo.getKinds())
   handle('meta:categories', () => repo.getCategories())
   handle('meta:tags', () => repo.getAllTags())
   handle('meta:patches', () => repo.getAchievementPatches())
   handle('meta:seasonalEvents', () => repo.getSeasonalEvents())
 
-  // Difficultés
+  // Difficulty
   handle('difficulty:get', (_e, achievementId: number) => {
     return store.getDifficulty(achievementId)
   })
@@ -131,20 +131,20 @@ export function registerIpcHandlers(): void {
     return { success: true, count: newDifficulties.size }
   })
 
-  // Tableau de bord
+  // Dashboard
   handle('dashboard:get', () => repo.getDashboard())
 
-  // Sauvegarde / restauration
+  // Backup / restore
   handle('data:export', () => exportUserData())
   handle('data:import', () => importUserData())
   handle('data:autoBackupInfo', () => getAutoBackupInfo())
   handle('data:openDocumentsFolder', () => openDocumentsBackupFolder())
 
-  // Paramètres
+  // Settings
   handle('settings:get', () => repo.getSettings())
   handle('settings:update', (_e, partial: Partial<Settings>) => repo.updateSettings(partial))
 
-  // Lodestone (synchro à la demande)
+  // Lodestone (on-demand sync)
   handle('lodestone:sync', () => syncLodestone())
   handle('lodestone:syncLog', () => repo.getSyncLog())
 
@@ -157,11 +157,11 @@ export function registerIpcHandlers(): void {
   // Suggestions
   handle('suggestions:get', (_e, weights?: SuggestionWeights) => getSuggestions(weights))
 
-  // Icônes (cache local)
+  // Icons (local cache)
   handle('icons:getUrl', (_e, iconPath: string | null) => getIconUrl(iconPath))
   handle('icons:prefetch', (_e, iconPaths: (string | null)[]) => prefetchIcons(iconPaths))
 
-  // Collections (montures / mascottes / orchestrion)
+  // Collections (mounts / minions / orchestrion)
   handle('collections:status', () => repo.getCollectionStatus())
   handle('collections:pending', () => repo.getCollectionPendingByType())
   handle('collections:allProgress', () => repo.getAllCollectionsProgress())
@@ -180,7 +180,7 @@ export function registerIpcHandlers(): void {
   })
   handle('collections:sync', (_e, type: CollectionType) => syncCollection(type))
 
-  // Tâches récurrentes (quotidiennes / hebdomadaires)
+  // Recurring tasks (daily / weekly)
   handle('recurring:list', () => repo.getRecurringTasks())
   handle(
     'recurring:add',
@@ -197,7 +197,7 @@ export function registerIpcHandlers(): void {
   })
   handle('recurring:pending', () => repo.countPendingRecurring())
 
-  // Mises à jour de l'application
+  // Application updates
   handle('updater:check', () => checkForUpdates())
   handle('updater:download', () => downloadUpdate())
   handle('updater:install', () => quitAndInstall())

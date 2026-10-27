@@ -25,8 +25,8 @@ function ach(partial: Partial<Achievement> = {}): Achievement {
   }
 }
 
-describe('composante points', () => {
-  it('est monotone croissante', () => {
+describe('points component', () => {
+  it('is monotonically increasing', () => {
     const s5 = calculateDifficulty(ach({ points: 5 })).score
     const s20 = calculateDifficulty(ach({ points: 20 })).score
     const s100 = calculateDifficulty(ach({ points: 100 })).score
@@ -34,36 +34,36 @@ describe('composante points', () => {
     expect(s20).toBeLessThan(s100)
   })
 
-  it('sature (ne croît pas linéairement)', () => {
+  it('saturates (does not grow linearly)', () => {
     const base = calculateDifficulty(ach({ points: 0 })).score
     const s100 = calculateDifficulty(ach({ points: 100 })).score
     const s200 = calculateDifficulty(ach({ points: 200 })).score
-    // Le gain 100→200 est bien plus petit que le plafond des points (35).
+    // The 100→200 gain is much smaller than the points cap (35).
     expect(s200 - s100).toBeLessThan(35)
     expect(s100).toBeGreaterThan(base)
   })
 })
 
-describe('paliers de contenu', () => {
+describe('content tiers', () => {
   const plain = calculateDifficulty(ach({ name: 'Tombeur de Titan' })).score
   const unreal = calculateDifficulty(ach({ name: 'Tombeur de Titan (irréel)' })).score
   const extreme = calculateDifficulty(ach({ name: 'Tombeur de Titan (extrême)' })).score
   const savage = calculateDifficulty(ach({ name: 'Tombeur de Titan (sadique)' })).score
   const ultimate = calculateDifficulty(ach({ name: 'La Légende d’Alexander (ultime)' })).score
 
-  it('ordonne irréel < extrême < sadique < ultime', () => {
+  it('orders unreal < extreme < savage < ultimate', () => {
     expect(plain).toBeLessThan(unreal)
     expect(unreal).toBeLessThan(extreme)
     expect(extreme).toBeLessThan(savage)
     expect(savage).toBeLessThan(ultimate)
   })
 
-  it('un Ultime est classé « extrême »', () => {
+  it('an Ultimate is classified as "extreme"', () => {
     const d = calculateDifficulty(ach({ name: 'La Légende d’Alexander (ultime)', points: 50, kindId: 1, categoryId: 4 }))
     expect(d.level).toBe('extreme')
   })
 
-  it('détecte aussi l’anglais (savage/ultimate)', () => {
+  it('also detects English (savage/ultimate)', () => {
     const fr = calculateDifficulty(ach({ name: 'Boss (sadique)' })).score
     const en = calculateDifficulty(ach({ name: 'Boss (savage)' })).score
     expect(en).toBe(fr)
@@ -71,40 +71,40 @@ describe('paliers de contenu', () => {
 })
 
 describe('grind', () => {
-  it('un gros volume augmente le score', () => {
+  it('a large volume increases the score', () => {
     const small = calculateDifficulty(ach({ description: 'Vaincre 100 ennemis.' })).score
     const big = calculateDifficulty(ach({ description: 'Vaincre 10000 ennemis.' })).score
     expect(big).toBeGreaterThan(small)
   })
 
-  it('gère les milliers avec espace (10 000)', () => {
+  it('handles thousands with a space (10 000)', () => {
     const big = calculateDifficulty(ach({ description: 'Vaincre 10 000 ennemis.' })).score
     const small = calculateDifficulty(ach({ description: 'Vaincre 100 ennemis.' })).score
     expect(big).toBeGreaterThan(small)
   })
 
-  it('aucun bonus sans verbe de grind', () => {
+  it('no bonus without a grind verb', () => {
     const withVerb = calculateDifficulty(ach({ description: 'Vaincre 5000 ennemis.' })).score
     const noVerb = calculateDifficulty(ach({ description: 'Objet numéro 5000 du catalogue.' })).score
     expect(withVerb).toBeGreaterThan(noVerb)
   })
 })
 
-describe('bonus contextuels', () => {
-  it('le saisonnier augmente le score', () => {
+describe('contextual bonuses', () => {
+  it('seasonal increases the score', () => {
     const normal = calculateDifficulty(ach()).score
     const seasonal = calculateDifficulty(ach({ isSeasonal: true })).score
     expect(seasonal).toBeGreaterThan(normal)
   })
 
-  it('un patch récent est légèrement plus dur (bonus de récence)', () => {
+  it('a recent patch is slightly harder (recency bonus)', () => {
     const old = calculateDifficulty(ach({ patch: '2.0' })).score
     const recent = calculateDifficulty(ach({ patch: '7.0' })).score
     expect(recent).toBeGreaterThan(old)
   })
 
-  it('le contexte type/catégorie prend le max, sans double comptage', () => {
-    // kindId 1 (30) et categoryId 4 (55) → contexte basé sur max(30,55), pas la somme.
+  it('kind/category context takes the max, without double-counting', () => {
+    // kindId 1 (30) and categoryId 4 (55) → context based on max(30,55), not the sum.
     const both = calculateDifficulty(ach({ kindId: 1, categoryId: 4 })).score
     const catOnly = calculateDifficulty(ach({ kindId: 0, categoryId: 4 })).score
     expect(both).toBe(catOnly)
@@ -112,12 +112,12 @@ describe('bonus contextuels', () => {
 })
 
 describe('classification', () => {
-  it('un haut fait trivial est facile', () => {
+  it('a trivial achievement is easy', () => {
     const d = calculateDifficulty(ach({ name: 'Niveau 10', points: 5, kindId: 8, categoryId: 35, patch: '2.0' }))
     expect(['very_easy', 'easy']).toContain(d.level)
   })
 
-  it('renvoie une couleur, des étoiles et un nom de niveau', () => {
+  it('returns a colour, stars and a level name', () => {
     const d = calculateDifficulty(ach())
     expect(d.color).toMatch(/^#/)
     expect(d.stars.length).toBeGreaterThan(0)
@@ -125,28 +125,28 @@ describe('classification', () => {
   })
 })
 
-describe('helpers de collection (map)', () => {
+describe('collection helpers (map)', () => {
   const list = [
     ach({ name: 'Facile', points: 5, patch: '2.0' }),
     ach({ name: 'Dur (ultime)', points: 50, kindId: 1, categoryId: 4, patch: '7.0' }),
     ach({ name: 'Moyen (extrême)', points: 10, kindId: 1, categoryId: 3, patch: '5.0' })
   ]
 
-  it('calculateAllDifficulties indexe par id', () => {
+  it('calculateAllDifficulties indexes by id', () => {
     const map = calculateAllDifficulties(list)
     expect(map.size).toBe(list.length)
     for (const a of list) expect(map.has(a.id)).toBe(true)
   })
 
-  it('sortByDifficulty trie ascendant/descendant', () => {
+  it('sortByDifficulty sorts ascending/descending', () => {
     const map = calculateAllDifficulties(list)
     const asc = sortByDifficulty(map, 'asc')
     const desc = sortByDifficulty(map, 'desc')
-    expect(asc[0]).toBe(list[0].id) // « Facile » en premier
+    expect(asc[0]).toBe(list[0].id) // "Facile" first
     expect(desc[0]).toBe(asc[asc.length - 1])
   })
 
-  it('filterByDifficulty filtre par niveau', () => {
+  it('filterByDifficulty filters by level', () => {
     const map = calculateAllDifficulties(list)
     const ultimateId = list[1].id
     const level = map.get(ultimateId)!.level
@@ -155,7 +155,7 @@ describe('helpers de collection (map)', () => {
   })
 })
 
-describe('getDifficultyStats (dépend du store global)', () => {
+describe('getDifficultyStats (depends on the global store)', () => {
   const list = [
     ach({ name: 'A facile', points: 5, patch: '2.0' }),
     ach({ name: 'B ultime (ultime)', points: 50, kindId: 1, categoryId: 4, patch: '7.0' })
@@ -165,7 +165,7 @@ describe('getDifficultyStats (dépend du store global)', () => {
     store.catalog.achievements = list
   })
 
-  it('agrège total, moyenne et extrêmes', () => {
+  it('aggregates total, average and extremes', () => {
     const map = calculateAllDifficulties(list)
     const stats = getDifficultyStats(map)
     expect(stats.total).toBe(2)

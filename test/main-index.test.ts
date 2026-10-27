@@ -118,7 +118,7 @@ vi.mock('../src/main/utils/icons', () => ({ prefetchIcons: mocks.prefetch }))
 vi.mock('../src/main/utils/difficulty', () => ({ calculateAllDifficulties: mocks.difficulties }))
 vi.mock('../src/main/services/updater', () => ({ initUpdater: mocks.initUpdater }))
 
-/** Importe le point d'entrée et attend la fin de `app.whenReady()`. */
+/** Imports the entry point and waits for `app.whenReady()` to complete. */
 async function boot(): Promise<InstanceType<typeof h.BrowserWindow>> {
   vi.resetModules()
   await import('../src/main/index')
@@ -147,8 +147,8 @@ afterEach(() => {
   delete process.env['ELECTRON_RENDERER_URL']
 })
 
-describe('démarrage', () => {
-  it('quitte si une autre instance tient le verrou', async () => {
+describe('startup', () => {
+  it('quits when another instance holds the lock', async () => {
     h.state.lock = false
     const exit = vi.spyOn(process, 'exit').mockImplementation((() => {
       throw new Error('exit')
@@ -160,7 +160,7 @@ describe('démarrage', () => {
     exit.mockRestore()
   })
 
-  it('initialise les services, désactive les caches et refuse toute permission web', async () => {
+  it('initialises services, disables caches and denies every web permission', async () => {
     const win = await boot()
     expect(h.app.commandLine.appendSwitch).toHaveBeenCalledWith('disable-http-cache')
     expect(mocks.storeInit).toHaveBeenCalled()
@@ -184,21 +184,21 @@ describe('démarrage', () => {
     expect(win.loadFile).toHaveBeenCalled()
   })
 
-  it('ignore un échec de préchargement des icônes', async () => {
+  it('ignores an icon prefetch failure', async () => {
     mocks.prefetch.mockRejectedValueOnce(new Error('offline'))
     await boot()
     expect(mocks.prefetch).toHaveBeenCalled()
   })
 
-  it('charge le serveur Vite en dev', async () => {
+  it('loads the Vite server in dev', async () => {
     process.env['ELECTRON_RENDERER_URL'] = 'http://localhost:5173'
     const win = await boot()
     expect(win.loadURL).toHaveBeenCalledWith('http://localhost:5173')
   })
 })
 
-describe('état de la fenêtre', () => {
-  it('restaure l’état sauvegardé et le réécrit à la fermeture', async () => {
+describe('window state', () => {
+  it('restores the saved state and writes it back on close', async () => {
     const statePath = join(h.state.userData, 'window-state.json')
     writeFileSync(statePath, JSON.stringify({ width: 900, height: 650, x: 1, y: 2, maximized: true }))
     const win = await boot()
@@ -209,7 +209,7 @@ describe('état de la fenêtre', () => {
     expect(JSON.parse(readFileSync(statePath, 'utf8'))).toEqual({ width: 1000, height: 700, x: 10, y: 20, maximized: true })
   })
 
-  it('ignore un état illisible et un échec d’écriture', async () => {
+  it('ignores an unreadable state and a write failure', async () => {
     writeFileSync(join(h.state.userData, 'window-state.json'), '{bad')
     const win = await boot()
     expect(win.opts).toMatchObject({ width: 1280, height: 820 })
@@ -217,7 +217,7 @@ describe('état de la fenêtre', () => {
     expect(() => win.handlers.close()).not.toThrow()
   })
 
-  it('affiche la fenêtre et démarre l’updater quand elle est prête', async () => {
+  it('shows the window and starts the updater when ready', async () => {
     const win = await boot()
     win.handlers['ready-to-show']()
     expect(win.show).toHaveBeenCalled()
@@ -225,8 +225,8 @@ describe('état de la fenêtre', () => {
   })
 })
 
-describe('navigation et liens externes', () => {
-  it('ouvre uniquement les liens HTTPS dans le navigateur système', async () => {
+describe('navigation and external links', () => {
+  it('only opens HTTPS links in the system browser', async () => {
     const win = await boot()
     expect(win.windowOpenHandler!({ url: 'https://ffxivcollect.com/x' })).toEqual({ action: 'deny' })
     expect(h.shell.openExternal).toHaveBeenCalledWith('https://ffxivcollect.com/x')
@@ -237,7 +237,7 @@ describe('navigation et liens externes', () => {
     expect(h.shell.openExternal).not.toHaveBeenCalled()
   })
 
-  it('bloque la navigation hors de la page locale en production', async () => {
+  it('blocks navigation away from the local page in production', async () => {
     const win = await boot()
     const local = { preventDefault: vi.fn() }
     win.wcHandlers['will-navigate'](local, 'file:///app/index.html')
@@ -249,7 +249,7 @@ describe('navigation et liens externes', () => {
     expect(h.shell.openExternal).toHaveBeenCalledWith('https://example.com/')
   })
 
-  it('n’autorise que le serveur Vite en dev', async () => {
+  it('only allows the Vite server in dev', async () => {
     process.env['ELECTRON_RENDERER_URL'] = 'http://localhost:5173'
     const win = await boot()
     const dev = { preventDefault: vi.fn() }
@@ -261,8 +261,8 @@ describe('navigation et liens externes', () => {
   })
 })
 
-describe('notification des tâches récurrentes au démarrage', () => {
-  it('notifie les tâches en attente et navigue au clic', async () => {
+describe('pending recurring tasks notification at startup', () => {
+  it('notifies pending tasks and navigates on click', async () => {
     h.pending.value = { daily: 1, weekly: 2, daily22: 1 }
     const win = await boot()
     vi.advanceTimersByTime(1000)
@@ -274,7 +274,7 @@ describe('notification des tâches récurrentes au démarrage', () => {
     expect(win.webContents.send).toHaveBeenCalledWith('navigate-to', 'recurring')
   })
 
-  it('utilise l’icône des ressources une fois packagé', async () => {
+  it('uses the resources icon once packaged', async () => {
     h.state.packaged = true
     ;(process as { resourcesPath?: string }).resourcesPath = '/res'
     h.pending.value = { daily: 1, weekly: 0, daily22: 0 }
@@ -283,7 +283,7 @@ describe('notification des tâches récurrentes au démarrage', () => {
     expect(h.state.notifications[0].opts.icon).toMatch(/^[\\/]res[\\/]build[\\/]icon\.png$/)
   })
 
-  it('ne notifie rien sans tâche ou sans support', async () => {
+  it('notifies nothing without tasks or without support', async () => {
     await boot()
     vi.advanceTimersByTime(1000)
     h.pending.value = { daily: 1, weekly: 0, daily22: 0 }
@@ -295,8 +295,8 @@ describe('notification des tâches récurrentes au démarrage', () => {
   })
 })
 
-describe('événements de l’application', () => {
-  it('second-instance réaffiche la fenêtre existante', async () => {
+describe('application events', () => {
+  it('second-instance shows the existing window again', async () => {
     const win = await boot()
     win.minimized = true
     h.state.appHandlers['second-instance']()
@@ -304,7 +304,7 @@ describe('événements de l’application', () => {
     expect(win.focus).toHaveBeenCalled()
   })
 
-  it('activate recrée une fenêtre si aucune n’est ouverte', async () => {
+  it('activate recreates a window when none is open', async () => {
     await boot()
     h.state.appHandlers.activate()
     expect(h.state.windows).toHaveLength(1)
@@ -313,7 +313,7 @@ describe('événements de l’application', () => {
     expect(h.state.windows).toHaveLength(1)
   })
 
-  it('window-all-closed quitte hors macOS', async () => {
+  it('window-all-closed quits outside macOS', async () => {
     await boot()
     h.state.appHandlers['window-all-closed']()
     expect(h.app.quit).toHaveBeenCalledTimes(process.platform === 'darwin' ? 0 : 1)

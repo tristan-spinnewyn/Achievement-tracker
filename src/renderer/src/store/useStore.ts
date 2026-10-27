@@ -70,7 +70,7 @@ interface State {
   newPatchPending: number
   collectionPending: Record<CollectionType, number>
 
-  // Difficultés
+  // Difficulty
   difficulties: Map<number, AchievementDifficulty>
   difficultyStats: {
     total: number
@@ -115,7 +115,7 @@ function initialView(): View {
     const v = localStorage.getItem(VIEW_KEY) as View | null
     if (v) return v
   } catch {
-    // localStorage indisponible
+    // localStorage unavailable
   }
   return 'achievements'
 }
@@ -141,7 +141,7 @@ export const useStore = create<State>()((set, get) => ({
   loading: false,
   error: null,
 
-  // Difficultés
+  // Difficulty
   difficulties: new Map(),
   difficultyStats: null,
 

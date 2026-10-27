@@ -1,8 +1,8 @@
 /**
- * Génère resources/collections-snapshot.json via le module de construction partagé
- * (montures, mascottes, orchestrion, emotes, mode, coiffures, barde, titres).
+ * Generates resources/collections-snapshot.json through the shared builder module
+ * (mounts, minions, orchestrion, emotes, fashion, hairstyles, barding, titles).
  *
- * Lancer : npm run build:collections
+ * Run: npm run build:collections
  */
 import { writeFileSync, mkdirSync } from 'fs'
 import { resolve, dirname } from 'path'
@@ -10,7 +10,7 @@ import type { CollectionsSnapshot, CollectionType } from '../src/shared/types'
 import { buildCollections } from '../src/main/services/collectionsCatalog'
 
 async function main(): Promise<void> {
-  console.log('Construction du catalogue des collections…')
+  console.log('Building the collections catalog…')
   const built = await buildCollections()
 
   const counts: Record<string, number> = {}
@@ -34,11 +34,11 @@ async function main(): Promise<void> {
   console.log(
     (Object.keys(counts) as CollectionType[]).map((t) => `${t}: ${counts[t]}`).join(' · ')
   )
-  console.log(`✔ ${built.items.length} entrées · ${withPatch} avec patch`)
-  console.log(`✔ Snapshot écrit : ${out}`)
+  console.log(`✔ ${built.items.length} entries · ${withPatch} with a patch`)
+  console.log(`✔ Snapshot written: ${out}`)
 }
 
 main().catch((err) => {
-  console.error('\n✖ Échec :', err)
+  console.error('\n✖ Failed:', err)
   process.exit(1)
 })

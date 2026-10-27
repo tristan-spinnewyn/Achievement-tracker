@@ -59,8 +59,8 @@ beforeEach(() => {
   store.reindex()
 })
 
-describe('métadonnées et filtres', () => {
-  it('expose les patchs, événements saisonniers et le dernier patch', () => {
+describe('metadata and filters', () => {
+  it('exposes patches, seasonal events and the latest patch', () => {
     expect(repo.getAchievementPatches()).toEqual(['7.1', '6.5'])
     expect(repo.getSeasonalEvents()).toEqual(['Halloween'])
     expect(repo.getLatestPatchSummary()).toEqual({ patch: '7.1', pending: 2, total: 2 })
@@ -69,7 +69,7 @@ describe('métadonnées et filtres', () => {
     expect(repo.getCategories()).toHaveLength(2)
   })
 
-  it('filtre et trie les hauts faits', () => {
+  it('filters and sorts achievements', () => {
     expect(repo.listAchievements({ obtainableOnly: true }).map((r) => r.id)).toEqual([1, 2])
     expect(repo.listAchievements({ kindId: 2 }).map((r) => r.id)).toEqual([2])
     expect(repo.listAchievements({ minPoints: 10, maxPoints: 15 }).map((r) => r.id)).toEqual([3])
@@ -83,8 +83,8 @@ describe('métadonnées et filtres', () => {
   })
 })
 
-describe('mutations et historique', () => {
-  it('coche / décoche avec undo et redo', () => {
+describe('mutations and history', () => {
+  it('checks / unchecks with undo and redo', () => {
     repo.setManualCompletion(1, true)
     expect(repo.getAchievementRow(1)!.completed).toBe(true)
     expect(repo.listAchievements({ status: 'completed' }).map((r) => r.id)).toEqual([1])
@@ -100,14 +100,14 @@ describe('mutations et historique', () => {
     expect(repo.listAchievements({ status: 'todo' }).map((r) => r.id)).toEqual([1, 2, 3])
   })
 
-  it('ne laisse pas décocher un haut fait obtenu via le Lodestone', () => {
+  it('does not allow unchecking an achievement obtained via the Lodestone', () => {
     expect(repo.applyLodestoneCompletions([{ id: 2, date: '2026-01-01' }, { id: 3, date: null }])).toEqual({ newly: 2, total: 2 })
     repo.setManualCompletion(2, false)
     expect(repo.getAchievementRow(2)!.completed).toBe(true)
     expect(repo.applyLodestoneCompletions([{ id: 2, date: null }]).newly).toBe(0)
   })
 
-  it('gère priorité, focus, note, échéance et tags', () => {
+  it('handles priority, focus, note, deadline and tags', () => {
     repo.setPriority(1, 3)
     repo.setFocus(1, true)
     repo.setFocus(2, true)
@@ -125,7 +125,7 @@ describe('mutations et historique', () => {
     expect(repo.listAchievements({ tags: ['raid', 'solo'] }).map((r) => r.id)).toEqual([2])
     expect(repo.getAllTags()).toEqual(['raid', 'solo'])
 
-    // Chaque mutation est annulable
+    // Every mutation can be undone
     expect(repo.undo()).toBe(true)
     expect(repo.getAchievementRow(2)!.tags).toEqual([])
     expect(repo.undo()).toBe(true)
@@ -134,20 +134,20 @@ describe('mutations et historique', () => {
     expect(repo.getAchievementRow(2)!.note).toBeNull()
   })
 
-  it('renvoie false quand il n’y a rien à annuler ou rétablir', () => {
+  it('returns false when there is nothing to undo or redo', () => {
     expect(repo.undo()).toBe(false)
     expect(repo.redo()).toBe(false)
   })
 
-  it('met à jour les paramètres et journalise les synchros', () => {
+  it('updates settings and logs syncs', () => {
     expect(repo.updateSettings({ region: 'na' }).region).toBe('na')
     repo.addSyncLog({ at: 'x', ok: true, newlyCompleted: 1, totalCompleted: 1, message: 'ok' })
     expect(repo.getSyncLog()[0].message).toBe('ok')
   })
 })
 
-describe('tableau de bord', () => {
-  it('agrège points et progression par type et catégorie', () => {
+describe('dashboard', () => {
+  it('aggregates points and progress by kind and category', () => {
     repo.setManualCompletion(2, true)
     const d = repo.getDashboard()
     expect(d).toMatchObject({ totalAchievements: 3, completedAchievements: 1, totalPoints: 35, earnedPoints: 20 })
@@ -157,8 +157,8 @@ describe('tableau de bord', () => {
   })
 })
 
-describe('tâches récurrentes', () => {
-  it('ajoute, valide, annule, supprime et compte les tâches en attente', () => {
+describe('recurring tasks', () => {
+  it('adds, checks, unchecks, deletes and counts pending tasks', () => {
     const daily = repo.addRecurringTask({ name: '  Roulette  ', type: 'daily' })
     const weekly = repo.addRecurringTask({ name: 'Raid', type: 'weekly' })
     repo.addRecurringTask({ name: 'Ravitaillement', type: 'daily22' })
@@ -179,7 +179,7 @@ describe('tâches récurrentes', () => {
     expect(repo.getRecurringTasks()).toHaveLength(2)
   })
 
-  it('supprime automatiquement une tâche liée à un haut fait obtenu', () => {
+  it('automatically removes a task linked to an obtained achievement', () => {
     repo.addRecurringTask({ name: 'Lié', type: 'daily', achievementId: 1 })
     repo.setManualCompletion(1, true)
     expect(repo.getRecurringTasks()).toHaveLength(0)
@@ -187,7 +187,7 @@ describe('tâches récurrentes', () => {
 })
 
 describe('collections', () => {
-  it('liste, filtre et calcule la progression', () => {
+  it('lists, filters and computes progress', () => {
     repo.setCollectionOwned('mount', 1, true)
     expect(repo.getCollectionStatus().counts.mount).toBe(3)
     expect(repo.getCollectionPendingByType().mount).toBe(1)
@@ -206,7 +206,7 @@ describe('collections', () => {
     expect(repo.getCollectionProgress('mount').owned).toBe(0)
   })
 
-  it('associe les noms Lodestone via les alias normalisés', () => {
+  it('matches Lodestone names through normalised aliases', () => {
     expect(repo.applyLodestoneCollection('mount', ['Monture  2', 'MONTURE 3', 'Inconnue'])).toEqual({
       matched: 2,
       unmatched: 1,
@@ -216,12 +216,12 @@ describe('collections', () => {
   })
 })
 
-describe('utilitaires', () => {
-  it('normalise les noms (accents, apostrophes, espaces)', () => {
+describe('utilities', () => {
+  it('normalises names (accents, apostrophes, spaces)', () => {
     expect(repo.normalizeName('  Élan   d’Été ')).toBe("elan d'ete")
   })
 
-  it('calcule une clé de tri de patch cohérente', () => {
+  it('computes a consistent patch sort key', () => {
     expect(repo.patchSortKey(null)).toBe(-1)
     expect(repo.patchSortKey('7.5')).toBe(750)
     expect(repo.patchSortKey('7.51')).toBe(751)

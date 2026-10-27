@@ -27,7 +27,7 @@ function App() {
     init()
   }, [init])
 
-  // Écouter les messages de navigation depuis le main process (via le bridge préload)
+  // Listen for navigation messages from the main process (via the preload bridge)
   useEffect(() => {
     const unsubscribe = window.api.onNavigate((targetView) => {
       setView(targetView as View)
@@ -35,10 +35,10 @@ function App() {
     return unsubscribe
   }, [setView])
 
-  // Gestion des raccourcis clavier
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+K ou Ctrl+F : focus sur la barre de recherche
+      // Ctrl+K or Ctrl+F: focus the search bar
       if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'f')) {
         e.preventDefault()
         const searchInput = document.getElementById('search-input')
@@ -48,7 +48,7 @@ function App() {
         }
       }
       
-      // Ctrl+1 à Ctrl+9 : changer de vue
+      // Ctrl+1 to Ctrl+9: switch view
       if ((e.ctrlKey || e.metaKey) && e.key >= '1' && e.key <= '9') {
         e.preventDefault()
         const views: View[] = ['dashboard', 'achievements', 'focus', 'recurring', 'suggestions', 'settings']
@@ -58,7 +58,7 @@ function App() {
         }
       }
       
-      // Échap : fermer le DetailDrawer
+      // Escape: close the DetailDrawer
       if (e.key === 'Escape') {
         e.preventDefault()
         select(null)
@@ -70,7 +70,7 @@ function App() {
         window.api.history.undo()
       }
       
-      // Ctrl+Y ou Ctrl+Shift+Z : redo
+      // Ctrl+Y or Ctrl+Shift+Z: redo
       if (((e.ctrlKey || e.metaKey) && e.key === 'y') ||
           ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey)) {
         e.preventDefault()
@@ -84,7 +84,7 @@ function App() {
     }
   }, [setView, select])
 
-  // Synchronisation automatique au démarrage (si activée et personnage configuré).
+  // Automatic sync at startup (if enabled and a character is configured).
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -95,7 +95,7 @@ function App() {
         await window.api.lodestone.sync()
         for (const t of SYNCABLE_COLLECTIONS) await window.api.collections.sync(t)
       } catch {
-        // synchro best-effort
+        // best-effort sync
       }
       if (cancelled) return
       await useStore.getState().init()

@@ -4,23 +4,23 @@ import { resolve } from 'path'
 import type { CollectionsSnapshot, CatalogSnapshot } from '@shared/types'
 import { collectionExternalUrl } from '../src/renderer/src/lib/external'
 
-describe('Liens externes (collectionExternalUrl)', () => {
-  it('génère le lien direct vers FFXIV Collect pour les bêtes', () => {
+describe('External links (collectionExternalUrl)', () => {
+  it('builds the direct FFXIV Collect link for beasts', () => {
     const url = collectionExternalUrl('beast', 1, 'Cu sith')
     expect(url).toBe('https://ffxivcollect.com/beasts/1')
   })
 
-  it('génère les liens corrects pour les autres types de collections', () => {
+  it('builds the right links for the other collection types', () => {
     expect(collectionExternalUrl('mount', 10, 'Chocobo')).toBe('https://ffxivcollect.com/mounts/10')
     expect(collectionExternalUrl('spell', 1, 'Canon à eau')).toBe('https://ffxivcollect.com/spells/1')
     expect(collectionExternalUrl('tripletriad', 5, 'Dodo')).toBe('https://ffxiv.gamerescape.com/w/index.php?search=Dodo')
   })
 })
 
-describe('Snapshot des collections (Bestiaire du dresseur)', () => {
+describe('Collections snapshot (Trainer\'s bestiary)', () => {
   const snapshotPath = resolve(__dirname, '../resources/collections-snapshot.json')
 
-  it('le fichier snapshot existe et est un JSON valide', () => {
+  it('the snapshot file exists and is valid JSON', () => {
     expect(existsSync(snapshotPath)).toBe(true)
     const raw = readFileSync(snapshotPath, 'utf8')
     const snap = JSON.parse(raw) as CollectionsSnapshot
@@ -28,18 +28,18 @@ describe('Snapshot des collections (Bestiaire du dresseur)', () => {
     expect(snap.categories).toBeDefined()
   })
 
-  it('contient exactement 50 bêtes capturables', () => {
+  it('contains exactly 50 capturable beasts', () => {
     const snap = JSON.parse(readFileSync(snapshotPath, 'utf8')) as CollectionsSnapshot
     const beasts = snap.items.filter((it) => it.type === 'beast')
     expect(beasts.length).toBe(50)
 
-    // Vérification des IDs 1 à 50
+    // Check IDs 1 to 50
     const ids = beasts.map((b) => b.id).sort((a, b) => a - b)
     expect(ids[0]).toBe(1)
     expect(ids[ids.length - 1]).toBe(50)
   })
 
-  it('chaque bête a un nom, une icône et un patch 7.56', () => {
+  it('every beast has a name, an icon and patch 7.56', () => {
     const snap = JSON.parse(readFileSync(snapshotPath, 'utf8')) as CollectionsSnapshot
     const beasts = snap.items.filter((it) => it.type === 'beast')
 
@@ -53,7 +53,7 @@ describe('Snapshot des collections (Bestiaire du dresseur)', () => {
     }
   })
 
-  it('définit les 8 familles officielles de bêtes', () => {
+  it('defines the 8 official beast families', () => {
     const snap = JSON.parse(readFileSync(snapshotPath, 'utf8')) as CollectionsSnapshot
     const beastCats = snap.categories.filter((c) => c.type === 'beast').sort((a, b) => a.order - b.order)
 
@@ -70,7 +70,7 @@ describe('Snapshot des collections (Bestiaire du dresseur)', () => {
     ])
   })
 
-  it('contient les informations de capture spécifiques (Cu sith, Écureuil)', () => {
+  it('contains the capture-specific information (Cu sith, Écureuil)', () => {
     const snap = JSON.parse(readFileSync(snapshotPath, 'utf8')) as CollectionsSnapshot
     const beasts = snap.items.filter((it) => it.type === 'beast')
 
@@ -86,10 +86,10 @@ describe('Snapshot des collections (Bestiaire du dresseur)', () => {
   })
 })
 
-describe('Snapshot du catalogue (Hauts faits du dresseur)', () => {
+describe('Catalog snapshot (trainer achievements)', () => {
   const catalogPath = resolve(__dirname, '../resources/catalog-snapshot.json')
 
-  it('contient les hauts faits de capture du bestiaire (Adepte des bêtes I à V)', () => {
+  it('contains the bestiary capture achievements (Adepte des bêtes I to V)', () => {
     const snap = JSON.parse(readFileSync(catalogPath, 'utf8')) as CatalogSnapshot
     const achs = snap.achievements
 

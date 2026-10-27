@@ -14,7 +14,7 @@ export default function NewPatchView() {
   const [rows, setRows] = useState<AchievementRow[]>([])
   const [loading, setLoading] = useState(false)
 
-  // Liste des patchs disponibles ; on sélectionne le plus récent par défaut.
+  // Available patches; the most recent one is selected by default.
   useEffect(() => {
     window.api.meta.patches().then((ps) => {
       setPatches(ps)
@@ -34,7 +34,7 @@ export default function NewPatchView() {
   }, [patch])
 
   const toggle = async (row: AchievementRow) => {
-    if (row.completed && row.source === 'lodestone') return // verrouillé (Lodestone)
+    if (row.completed && row.source === 'lodestone') return // locked (Lodestone)
     const next = !row.completed
     await window.api.achievements.setCompletion(row.id, next)
     setRows((rs) => rs.map((x) => (x.id === row.id ? { ...x, completed: next } : x)))

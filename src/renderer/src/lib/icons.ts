@@ -1,16 +1,16 @@
 /**
- * Cache local pour les URLs d'icônes (évite les appels IPC répétés).
+ * Local cache for icon URLs (avoids repeated IPC calls).
  */
 const iconUrlCache = new Map<string, string | null>()
 
 /**
- * Précharge les icônes pour une liste de chemins.
+ * Prefetches the icons for a list of paths.
  */
 export async function prefetchIconUrls(paths: (string | null)[]): Promise<void> {
   const uniquePaths = [...new Set(paths.filter(Boolean))] as string[]
   await window.api.icons.prefetch(uniquePaths)
   
-  // Mettre à jour le cache
+  // Update the cache
   for (const path of uniquePaths) {
     const url = await window.api.icons.getUrl(path)
     iconUrlCache.set(path, url)
@@ -18,8 +18,8 @@ export async function prefetchIconUrls(paths: (string | null)[]): Promise<void> 
 }
 
 /**
- * Convertit un chemin d'icône en URL (locale si disponible, sinon distante).
- * Utilise le cache local si déjà résolu.
+ * Converts an icon path into a URL (local if available, otherwise remote).
+ * Uses the local cache when already resolved.
  */
 export async function iconUrlAsync(path: string | null): Promise<string | null> {
   if (!path) return null
@@ -34,8 +34,8 @@ export async function iconUrlAsync(path: string | null): Promise<string | null> 
 }
 
 /**
- * Version synchrone pour compatibilité (retourne l'URL distante si non en cache).
- * Pour les nouveaux appels, préférer iconUrlAsync.
+ * Synchronous version kept for compatibility (returns the remote URL when not cached).
+ * For new calls, prefer iconUrlAsync.
  */
 export function iconUrl(path: string | null): string | null {
   if (!path) return null
@@ -44,12 +44,12 @@ export function iconUrl(path: string | null): string | null {
     return iconUrlCache.get(path)!
   }
   
-  // Fallback : URL distante directe (sans passer par le cache pour ne pas bloquer)
-  // Format XIVAPI v2 pour les assets
+  // Fallback: direct remote URL (bypassing the cache so we never block)
+  // XIVAPI v2 format for assets
   if (path.startsWith('ui/') || path.startsWith('/ui/')) {
     const cleanPath = path.startsWith('/') ? path.slice(1) : path
     return `https://v2.xivapi.com/api/asset?path=${encodeURIComponent(cleanPath)}&format=png`
   }
-  // Format classique des icônes d'achievements
+  // Classic achievement icon format
   return `https://xivapi.com${path}`
 }
