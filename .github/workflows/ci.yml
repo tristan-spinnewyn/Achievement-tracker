@@ -7,44 +7,100 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+# Moindre privilège par défaut : chaque job ne reçoit que ce dont il a besoin.
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   build-and-test:
+    # Nom utilisé comme « required status check » par la protection de main : ne pas renommer.
     name: Compile, Test & Build Windows .exe
     runs-on: windows-latest
-    permissions:
-      contents: read
+    timeout-minutes: 30
 
     steps:
+      # Actions épinglées par SHA (tags mutables) ; Dependabot met à jour SHA + commentaire.
       - name: Check out repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 22.x
+          node-version: 24.x
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
+      - name: Verify npm registry signatures & provenance
+        run: npm audit signatures
+
       - name: TypeScript typecheck
         run: npm run typecheck
 
-      - name: Run unit tests with coverage threshold (Vitest)
+      - name: Run unit tests with coverage thresholds (Vitest)
         run: npm run test:coverage
+
+      - name: Publish coverage summary
+        if: always()
+        shell: bash
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            node -e "
+              const t = require('./coverage/coverage-summary.json').total;
+              const row = (k) => '| ' + k + ' | ' + t[k].pct + ' % | ' + t[k].covered + ' / ' + t[k].total + ' |';
+              console.log(['### Couverture de code', '', '| Métrique | % | Couvert |', '|---|---|---|',
+                ...['lines', 'statements', 'branches', 'functions'].map(row)].join('\n'));
+            " >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-report
+          path: coverage/
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Build and package Windows executable (.exe)
         run: npm run dist -- --publish never
 
       - name: Upload Windows Executable Artifacts (.exe)
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: FFXIV-Achievement-Tracker-Windows
           path: release/*.exe
           if-no-files-found: error
           retention-days: 14
 
+  supply-chain:
+    name: Supply-chain checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Bloque une PR qui introduit une dépendance vulnérable (sévérité ≥ high)
+      # ou sous licence incompatible avec une distribution MIT.
+      - name: Dependency review
+        if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+          deny-licenses: GPL-2.0-only, GPL-3.0-only, AGPL-3.0-only, AGPL-3.0-or-later
+
+      # Les devDependencies (react, zustand, chart.js…) sont empaquetées dans
+      # le renderer : on audite donc tout l'arbre, pas seulement --omit=dev.
+      - name: npm audit (high & critical)
+        run: npm audit --audit-level=high

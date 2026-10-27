@@ -6,6 +6,12 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
+    # Délai avant de proposer une nouvelle version : laisse le temps à la communauté
+    # de détecter un paquet compromis (attaques type « shai-hulud »). Les mises à jour
+    # de sécurité (alertes Dependabot) ne sont pas concernées et arrivent immédiatement.
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
     groups:
       dependencies:
         patterns:
@@ -14,9 +20,18 @@ updates:
           - "minor"
           - "patch"
 
-  # Écosystème GitHub Actions pour les actions CI/CD
+  # Écosystème GitHub Actions pour les actions CI/CD (épinglées par SHA)
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
