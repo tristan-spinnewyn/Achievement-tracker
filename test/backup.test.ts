@@ -9,9 +9,10 @@ import {
   getAutoBackupInfo,
   openDocumentsBackupFolder,
   exportUserData,
-  importUserData
+  importUserData,
+  sanitizeImportedUser
 } from '../src/main/services/backup'
-import { setMockDialog } from './stubs/electron'
+import { setMockDialog, TEST_USER_DATA } from './stubs/electron'
 
 describe('Sauvegarde miroir automatique dans Mes Documents', () => {
   const docFolder = getDocumentsBackupFolder()
@@ -91,7 +92,7 @@ describe('Sauvegarde miroir automatique dans Mes Documents', () => {
     writeFileSync(docPath, JSON.stringify(dummyBackup), 'utf8')
 
     // 2. Supprimer userdata.json dans userData pour simuler un nouveau PC
-    const userJsonPath = join(tmpdir(), 'userdata.json')
+    const userJsonPath = join(TEST_USER_DATA, 'userdata.json')
     if (existsSync(userJsonPath)) rmSync(userJsonPath, { force: true })
 
     // 3. Initialiser le store
@@ -165,5 +166,50 @@ describe('Sauvegarde miroir automatique dans Mes Documents', () => {
     expect(store.user.settings.lodestoneCharacterId).toBe('888888')
     expect(store.user.progress['10'].completed).toBe(true)
     rmSync(validFile, { force: true })
+  })
+
+  it('assainit une sauvegarde importée (fichier non fiable)', () => {
+    expect(sanitizeImportedUser(null)).toBeNull()
+    expect(sanitizeImportedUser([1, 2])).toBeNull()
+    expect(sanitizeImportedUser({ settings: 'oops' })).toBeNull()
+    expect(sanitizeImportedUser({ progress: [] })).toBeNull()
+    expect(sanitizeImportedUser({ progress: {}, syncLog: {} })).toBeNull()
+    expect(sanitizeImportedUser({ progress: {}, recurringTasks: 'x' })).toBeNull()
+
+    const out = sanitizeImportedUser({
+      settings: {
+        lodestoneCharacterId: '123',
+        region: 'mars',
+        language: 'en',
+        theme: 'light',
+        autoSync: 'yes',
+        autoBackupDocuments: false,
+        lastSyncAt: null,
+        suggestionWeights: { priority: 1, points: 2, categoryProximity: 3 },
+        injected: true
+      },
+      progress: {},
+      syncLog: [],
+      unknownKey: { a: 1 },
+      recurringTasks: [
+        { id: 'a', name: 'ok', iconPath: 'ui/icon/000000/000001.tex' },
+        { id: 'b', name: 'evil', iconPath: '..\..\Startup\evil.bat' },
+        { name: 'sans id' },
+        'pas un objet'
+      ]
+    })!
+    expect(out.settings).toEqual({
+      lodestoneCharacterId: '123',
+      language: 'en',
+      theme: 'light',
+      autoBackupDocuments: false,
+      lastSyncAt: null,
+      suggestionWeights: { priority: 1, points: 2, categoryProximity: 3 }
+    })
+    expect(out).not.toHaveProperty('unknownKey')
+    expect(out.recurringTasks!.map((t) => [t.id, t.iconPath])).toEqual([
+      ['a', 'ui/icon/000000/000001.tex'],
+      ['b', null]
+    ])
   })
 })
