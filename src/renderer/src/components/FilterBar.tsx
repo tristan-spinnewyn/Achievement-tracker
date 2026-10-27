@@ -74,7 +74,7 @@ export default function FilterBar() {
 
       <select
         value={filter.difficultyLevel ?? ''}
-        onChange={(e) => setFilter({ difficultyLevel: e.target.value as DifficultyLevel | null })}
+        onChange={(e) => setFilter({ difficultyLevel: (e.target.value || null) as DifficultyLevel | null })}
         className={ctrl}
       >
         <option value="">Toutes difficultés</option>
