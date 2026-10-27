@@ -6,11 +6,11 @@ import { checkForUpdates, downloadUpdate, getUpdaterStatus, quitAndInstall } fro
 import * as repo from '../data/repo'
 import { refreshCatalogFromXivapi } from '../services/catalog'
 import { syncLodestone } from '../services/lodestone'
-import { syncCollection, refreshCollectionsFromApi } from '../services/collections'
+import { syncCollection, refreshCollectionsFromApi } from '../services/collectionsSync'
 import { exportUserData, importUserData, getAutoBackupInfo, openDocumentsBackupFolder } from '../services/backup'
 import { getSuggestions } from '../services/suggestions'
 import { getIconUrl, prefetchIcons } from '../utils/icons'
-import { updateSearchIndex } from '../utils/search'
+import { updateSearchIndex } from '../services/search'
 import { store } from '../data/store'
 import { 
   calculateAllDifficulties, 
@@ -21,7 +21,7 @@ import {
   DEFAULT_KIND_WEIGHTS,
   DEFAULT_CATEGORY_WEIGHTS,
   DEFAULT_PATCH_WEIGHTS
-} from '../utils/difficulty'
+} from '../services/difficulty'
 import type {
   AchievementFilter,
   CollectionFilter,

@@ -12,22 +12,22 @@ vi.mock('electron', async (importOriginal) => ({
 vi.mock('../src/main/data/repo')
 vi.mock('../src/main/services/catalog')
 vi.mock('../src/main/services/lodestone')
-vi.mock('../src/main/services/collections')
+vi.mock('../src/main/services/collectionsSync')
 vi.mock('../src/main/services/backup')
 vi.mock('../src/main/services/suggestions')
 vi.mock('../src/main/services/updater')
 vi.mock('../src/main/utils/icons')
-vi.mock('../src/main/utils/search')
+vi.mock('../src/main/services/search')
 
 import * as repo from '../src/main/data/repo'
 import * as catalog from '../src/main/services/catalog'
 import * as lodestone from '../src/main/services/lodestone'
-import * as collections from '../src/main/services/collections'
+import * as collections from '../src/main/services/collectionsSync'
 import * as backup from '../src/main/services/backup'
 import * as suggestions from '../src/main/services/suggestions'
 import * as updater from '../src/main/services/updater'
 import * as icons from '../src/main/utils/icons'
-import * as search from '../src/main/utils/search'
+import * as search from '../src/main/services/search'
 import { store } from '../src/main/data/store'
 import { registerIpcHandlers } from '../src/main/ipc/handlers'
 import { setMockPackaged } from './stubs/electron'

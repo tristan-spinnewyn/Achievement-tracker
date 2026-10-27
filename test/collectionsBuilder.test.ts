@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { buildCollections, normalizeName } from '../src/main/services/collectionsCatalog'
+import { buildCollections, normalizeName } from '../src/main/services/collectionsBuilder'
 
 type Rows = { row_id: number; fields?: Record<string, unknown> }[]
 

@@ -49,12 +49,27 @@ function parsePage(html: string): { items: ScrapedAchievement[]; totalPages: num
   return { items, totalPages }
 }
 
-async function fetchPage(host: string, charId: string, page: number): Promise<string> {
-  const url = `https://${host}.finalfantasyxiv.com/lodestone/character/${charId}/achievement/?page=${page}`
+/** Base URL of a character's Lodestone pages for a region. */
+export function lodestoneCharacterUrl(region: Region, charId: string): string {
+  return `https://${HOSTS[region] ?? 'na'}.finalfantasyxiv.com/lodestone/character/${charId}`
+}
+
+/**
+ * Fetches a Lodestone page as text with a browser user agent, turning
+ * "not found" pages and network failures into user-facing errors.
+ */
+export async function fetchLodestoneText(
+  url: string,
+  opts: { headers?: Record<string, string>; retries?: number; timeout?: number } = {}
+): Promise<string> {
   try {
-    const text = await fetchTextWithRetry(url, {
-      headers: { 'User-Agent': UA }
-    })
+    const text = await fetchTextWithRetry(
+      url,
+      { headers: { 'User-Agent': UA, ...opts.headers } },
+      opts.retries,
+      undefined,
+      opts.timeout
+    )
     // Check for 404 manually since fetchTextWithRetry does not throw on 404
     if (text.includes('Character Not Found') || text.includes('Page Not Found')) {
       throw new Error('Personnage introuvable (404). Vérifie l’ID Lodestone.')
@@ -72,14 +87,15 @@ export async function scrapeAchievements(
   charId: string,
   region: Region
 ): Promise<{ items: ScrapedAchievement[]; pages: number }> {
-  const host = HOSTS[region] ?? 'na'
-  const first = await fetchPage(host, charId, 1)
+  const base = lodestoneCharacterUrl(region, charId)
+  const fetchPage = (page: number): Promise<string> => fetchLodestoneText(`${base}/achievement/?page=${page}`)
+  const first = await fetchPage(1)
   const { items, totalPages } = parsePage(first)
   const all = [...items]
   const pages = Math.min(totalPages, MAX_PAGES)
   for (let p = 2; p <= pages; p++) {
     await delay(POLITE_DELAY_MS)
-    const html = await fetchPage(host, charId, p)
+    const html = await fetchPage(p)
     all.push(...parsePage(html).items)
   }
   return { items: all, pages }

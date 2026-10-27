@@ -9,7 +9,7 @@ const fetchMock = vi.hoisted(() => ({ fn: vi.fn<(url: string) => Promise<string>
 vi.mock('../src/main/utils/fetch', () => ({ fetchTextWithRetry: (url: string) => fetchMock.fn(url) }))
 
 const built = vi.hoisted(() => ({ fn: vi.fn() }))
-vi.mock('../src/main/services/collectionsCatalog', () => ({ buildCollections: () => built.fn() }))
+vi.mock('../src/main/services/collectionsBuilder', () => ({ buildCollections: () => built.fn() }))
 
 import { store } from '../src/main/data/store'
 import {
@@ -17,7 +17,7 @@ import {
   seedCollectionsIfEmpty,
   refreshCollectionsFromApi,
   syncCollection
-} from '../src/main/services/collections'
+} from '../src/main/services/collectionsSync'
 import { setMockPackaged } from './stubs/electron'
 
 let appDir: string

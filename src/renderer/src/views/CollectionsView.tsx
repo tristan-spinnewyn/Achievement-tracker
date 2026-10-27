@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import {
   SYNCABLE_COLLECTIONS,
@@ -7,9 +7,11 @@ import {
   type CollectionStatus,
   type CollectionType
 } from '@shared/types'
-import { iconUrl } from '../lib/icons'
-import { collectionExternalUrl } from '../lib/external'
 import { useStore } from '../store/useStore'
+import ProgressBar from './collections/ProgressBar'
+import CollectionRow from './collections/CollectionRow'
+import DetailPanel from './collections/DetailPanel'
+import { isLocked } from './collections/shared'
 
 const ROW_H = 56
 
@@ -32,25 +34,6 @@ const LABELS: Record<CollectionType, { title: string; lead: string }> = {
   spell: { title: 'Magie bleue', lead: 'Suivi manuel. Coche les sorts appris.' },
   beast: { title: 'Bestiaire de dresseur', lead: 'Suivi manuel. Coche les bêtes capturées.' },
   tripletriad: { title: 'Cartes de Triple Triade', lead: 'Suivi manuel. Coche les cartes obtenues.' }
-}
-
-const isLocked = (row: CollectionItemRow): boolean => row.owned && row.source === 'lodestone'
-
-function ProgressBar({ owned, total }: { owned: number; total: number }) {
-  const pct = total ? Math.round((owned / total) * 100) : 0
-  return (
-    <div className="max-w-md">
-      <div className="mb-1 flex justify-between text-xs text-slate-400">
-        <span>
-          {owned} / {total} obtenu(s)
-        </span>
-        <span>{pct}%</span>
-      </div>
-      <div className="h-2 overflow-hidden rounded-full bg-slate-800">
-        <div className="h-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
-      </div>
-    </div>
-  )
 }
 
 export default function CollectionsView({ type }: { type: CollectionType }) {
@@ -260,180 +243,5 @@ export default function CollectionsView({ type }: { type: CollectionType }) {
         <DetailPanel row={selected} onClose={() => setSelected(null)} onToggle={toggle} />
       )}
     </div>
-  )
-}
-
-function SourceBadge({ row }: { row: CollectionItemRow }) {
-  if (!row.owned) return null
-  const verified = row.source === 'lodestone'
-  return (
-    <span
-      className={`shrink-0 rounded px-1.5 text-[10px] uppercase ${
-        verified ? 'bg-emerald-700 text-emerald-50' : 'bg-amber-700/60 text-amber-100'
-      }`}
-      title={
-        verified
-          ? 'Possession vérifiée sur le Lodestone (verrouillé)'
-          : 'Coché manuellement — non vérifié sur le Lodestone'
-      }
-    >
-      {verified ? '✓ vérifié' : 'manuel'}
-    </span>
-  )
-}
-
-function CollectionRow({
-  row,
-  onToggle,
-  onOpen,
-  active,
-  style
-}: {
-  row: CollectionItemRow
-  onToggle: (r: CollectionItemRow) => void
-  onOpen: (r: CollectionItemRow) => void
-  active: boolean
-  style: CSSProperties
-}) {
-  const url = iconUrl(row.iconPath)
-  const acq = row.description || row.sources.join(' · ')
-  const locked = isLocked(row)
-  return (
-    <div
-      style={style}
-      className={`flex items-center gap-3 border-b border-slate-800/50 px-2 ${
-        active ? 'bg-slate-700/60' : 'hover:bg-slate-800/40'
-      }`}
-    >
-      <input
-        type="checkbox"
-        checked={row.owned}
-        disabled={locked}
-        onChange={() => onToggle(row)}
-        title={locked ? 'Vérifié sur le Lodestone — décochage impossible' : undefined}
-        className={`h-4 w-4 shrink-0 accent-emerald-500 ${locked ? 'cursor-not-allowed opacity-70' : ''}`}
-      />
-      {url && (
-        <img
-          src={url}
-          loading="lazy"
-          className="h-7 w-7 shrink-0 rounded"
-          onError={(e) => (e.currentTarget.style.visibility = 'hidden')}
-        />
-      )}
-      <button onClick={() => onOpen(row)} className="min-w-0 flex-1 text-left">
-        <div className={`truncate text-sm hover:text-white ${row.owned ? 'text-white' : 'text-slate-300'}`}>
-          {row.name}
-        </div>
-        {acq && <div className="truncate text-xs text-slate-500">{acq}</div>}
-      </button>
-      {row.categoryName && (
-        <span className="shrink-0 text-xs text-slate-600">{row.categoryName}</span>
-      )}
-      {row.patch && (
-        <span
-          className="shrink-0 rounded bg-slate-700/70 px-1.5 font-mono text-[11px] text-slate-300"
-          title={`Ajouté au patch ${row.patch}`}
-        >
-          {row.patch}
-        </span>
-      )}
-      <SourceBadge row={row} />
-    </div>
-  )
-}
-
-function DetailPanel({
-  row,
-  onClose,
-  onToggle
-}: {
-  row: CollectionItemRow
-  onClose: () => void
-  onToggle: (r: CollectionItemRow) => void
-}) {
-  const url = iconUrl(row.iconPath)
-  const locked = isLocked(row)
-  return (
-    <aside className="flex w-80 shrink-0 flex-col border-l border-slate-800 bg-slate-950">
-      <div className="flex items-start justify-between gap-2 border-b border-slate-800 p-4">
-        <div className="flex items-center gap-3">
-          {url && (
-            <img
-              src={url}
-              className="h-12 w-12 rounded"
-              onError={(e) => (e.currentTarget.style.visibility = 'hidden')}
-            />
-          )}
-          <div>
-            <h3 className="font-semibold leading-tight">{row.name}</h3>
-            {row.patch && <span className="font-mono text-xs text-slate-400">Patch {row.patch}</span>}
-          </div>
-        </div>
-        <button onClick={onClose} className="text-slate-500 hover:text-white" title="Fermer">
-          ✕
-        </button>
-      </div>
-
-      <div className="flex-1 space-y-4 overflow-auto p-4 text-sm">
-        {row.categoryName && (
-          <div>
-            <div className="text-xs uppercase tracking-wide text-slate-500">Catégorie</div>
-            <div className="text-slate-200">{row.categoryName}</div>
-          </div>
-        )}
-
-        <div>
-          <div className="text-xs uppercase tracking-wide text-slate-500">Moyen(s) d’obtention</div>
-          {row.sources.length > 0 ? (
-            <ul className="mt-1 list-disc space-y-1 pl-4 text-slate-200">
-              {row.sources.map((s, i) => (
-                <li key={i}>{s}</li>
-              ))}
-            </ul>
-          ) : row.description ? (
-            <div className="text-slate-200">{row.description}</div>
-          ) : (
-            <div className="text-slate-500">Non documenté.</div>
-          )}
-        </div>
-
-        <div>
-          <div className="text-xs uppercase tracking-wide text-slate-500">Statut</div>
-          <div className="mt-1 flex items-center gap-2">
-            <span className={row.owned ? 'text-emerald-400' : 'text-slate-400'}>
-              {row.owned ? (row.source === 'lodestone' ? '✓ Vérifié (Lodestone)' : '✓ Obtenu (manuel)') : 'Non obtenu'}
-            </span>
-          </div>
-          <button
-            onClick={() => onToggle(row)}
-            disabled={locked}
-            title={locked ? 'Vérifié sur le Lodestone — décochage impossible' : undefined}
-            className={`mt-3 w-full rounded px-3 py-1.5 text-sm font-medium ${
-              locked
-                ? 'cursor-not-allowed bg-slate-800 text-slate-500'
-                : row.owned
-                  ? 'bg-slate-700 hover:bg-slate-600'
-                  : 'bg-emerald-600 hover:bg-emerald-500'
-            }`}
-          >
-            {locked
-              ? 'Verrouillé (vérifié Lodestone)'
-              : row.owned
-                ? 'Marquer comme non obtenu'
-                : 'Marquer comme obtenu'}
-          </button>
-        </div>
-
-        <a
-          href={collectionExternalUrl(row.type, row.id, row.name)}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-block text-xs text-sky-400 hover:text-sky-300"
-        >
-          Voir en ligne ↗
-        </a>
-      </div>
-    </aside>
   )
 }

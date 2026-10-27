@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import type { AchievementRow } from '@shared/types'
-import { parseAdvancedQuery, evaluateAdvancedQuery, initSearchIndex, updateSearchIndex, searchAchievements } from '../src/main/utils/search'
+import { parseAdvancedQuery, evaluateAdvancedQuery, initSearchIndex, updateSearchIndex, searchAchievements } from '../src/main/services/search'
 import { store } from '../src/main/data/store'
 
 function row(partial: Partial<AchievementRow> = {}): AchievementRow {

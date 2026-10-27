@@ -7,7 +7,7 @@
 import { writeFileSync, mkdirSync } from 'fs'
 import { resolve, dirname } from 'path'
 import type { CollectionsSnapshot, CollectionType } from '../src/shared/types'
-import { buildCollections } from '../src/main/services/collectionsCatalog'
+import { buildCollections } from '../src/main/services/collectionsBuilder'
 
 async function main(): Promise<void> {
   console.log('Building the collections catalog…')

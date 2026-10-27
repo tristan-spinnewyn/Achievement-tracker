@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
-import { extractCharacterId, scrapeAchievements, syncLodestone } from '../src/main/services/lodestone'
+import {
+  extractCharacterId,
+  fetchLodestoneText,
+  lodestoneCharacterUrl,
+  scrapeAchievements,
+  syncLodestone
+} from '../src/main/services/lodestone'
 import { store } from '../src/main/data/store'
 
 afterEach(() => vi.unstubAllGlobals())
@@ -24,6 +30,34 @@ describe('extractCharacterId', () => {
     expect(extractCharacterId('123/../../admin')).toBeNull()
     expect(extractCharacterId('abc')).toBeNull()
     expect(extractCharacterId('')).toBeNull()
+  })
+})
+
+describe('lodestoneCharacterUrl', () => {
+  it('maps the region to its Lodestone subdomain', () => {
+    expect(lodestoneCharacterUrl('ja', '7')).toBe('https://jp.finalfantasyxiv.com/lodestone/character/7')
+    expect(lodestoneCharacterUrl('fr', '7')).toBe('https://fr.finalfantasyxiv.com/lodestone/character/7')
+  })
+})
+
+describe('fetchLodestoneText', () => {
+  it('sends the browser user agent plus any extra headers', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('ok'))
+    vi.stubGlobal('fetch', fetchMock)
+    expect(await fetchLodestoneText('https://x', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })).toBe('ok')
+    const headers = fetchMock.mock.calls[0][1].headers
+    expect(headers['User-Agent']).toMatch(/Mozilla/)
+    expect(headers['X-Requested-With']).toBe('XMLHttpRequest')
+  })
+
+  it('reports a missing character', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('Page Not Found')))
+    await expect(fetchLodestoneText('https://x')).rejects.toThrow('introuvable (404)')
+  })
+
+  it('wraps network failures in a Lodestone error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('boom')))
+    await expect(fetchLodestoneText('https://x', { retries: 0 })).rejects.toThrow('Lodestone a répondu avec une erreur')
   })
 })
 
