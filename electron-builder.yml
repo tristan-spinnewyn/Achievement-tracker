@@ -6,7 +6,7 @@ directories:
 publish:
   provider: github
   owner: tristan-spinnewyn
-  repo: Achievment-tracker
+  repo: Achievement-tracker
 files:
   - '!**/.vscode/*'
   - '!src/*'
@@ -16,6 +16,15 @@ files:
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
   - '!{tailwind.config.js,postcss.config.js}'
 asar: true
+# Durcissement du binaire Electron (https://www.electronjs.org/docs/latest/tutorial/fuses)
+electronFuses:
+  runAsNode: false # ELECTRON_RUN_AS_NODE ignoré : l'exe ne peut pas servir d'interpréteur Node
+  enableNodeOptionsEnvironmentVariable: false # NODE_OPTIONS / NODE_EXTRA_CA_CERTS ignorés
+  enableNodeCliInspectArguments: false # --inspect refusé (pas d'injection via débogueur)
+  enableEmbeddedAsarIntegrityValidation: true # app.asar vérifié au chargement
+  onlyLoadAppFromAsar: true # pas de dossier app/ substituable à côté de l'asar
+  enableCookieEncryption: true
+  grantFileProtocolExtraPrivileges: true # requis tant que le renderer est servi en file://
 asarUnpack:
   - resources/**
 extraResources:

@@ -90,6 +90,18 @@ function showPendingRecurringNotification(): void {
   }
 }
 
+/** Ouvre une URL dans le navigateur système, uniquement en HTTPS (jamais file:, smb:, etc.). */
+function openExternalIfSafe(url: string): void {
+  try {
+    const parsedUrl = new URL(url)
+    if (parsedUrl.protocol === 'https:') {
+      shell.openExternal(parsedUrl.href)
+    }
+  } catch {
+    // Ignorer les URLs invalides ou non autorisées
+  }
+}
+
 function createWindow(): void {
   const state = loadWinState()
   mainWindow = new BrowserWindow({
@@ -105,9 +117,11 @@ function createWindow(): void {
     title: 'FFXIV Achievement Tracker',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false,
+      // Le preload n'utilise que contextBridge/ipcRenderer : compatible sandbox.
+      sandbox: true,
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      webSecurity: true
     }
   })
 
@@ -134,14 +148,7 @@ function createWindow(): void {
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    try {
-      const parsedUrl = new URL(details.url)
-      if (parsedUrl.protocol === 'https:' || parsedUrl.protocol === 'http:') {
-        shell.openExternal(parsedUrl.href)
-      }
-    } catch {
-      // Ignorer les URLs invalides ou non autorisées
-    }
+    openExternalIfSafe(details.url)
     return { action: 'deny' }
   })
 
@@ -153,14 +160,7 @@ function createWindow(): void {
       : url.startsWith('file://')
     if (!isLocal) {
       event.preventDefault()
-      try {
-        const parsedUrl = new URL(url)
-        if (parsedUrl.protocol === 'https:' || parsedUrl.protocol === 'http:') {
-          shell.openExternal(parsedUrl.href)
-        }
-      } catch {
-        // Ignorer les URLs invalides
-      }
+      openExternalIfSafe(url)
     }
   })
 
@@ -196,31 +196,13 @@ app.whenReady().then(() => {
   // Précharger les icônes en arrière-plan
   prefetchIconsInBackground()
 
-  // Configurer la session pour éviter les erreurs de cache
-  // Désactiver le cache disque pour la session principale
-  session.defaultSession.setPreloads([join(__dirname, '../preload/index.js')])
-  
-  // Désactiver le cache pour éviter les erreurs de permissions Windows
-  if (app.isPackaged) {
-    session.defaultSession.webRequest.onBeforeRequest((details, callback) => {
-      // On pourrait ajouter des headers cache-control: no-store si nécessaire
-      callback({ cancel: false })
-    })
-  }
+  // Le renderer n'a besoin d'aucune permission web (caméra, micro, géoloc…) :
+  // les notifications passent par le main process.
+  session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) => callback(false))
+  session.defaultSession.setPermissionCheckHandler(() => false)
 
-  // Durcissement CSP en production (en dev, Vite a besoin de plus de souplesse).
-  if (app.isPackaged) {
-    session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-      callback({
-        responseHeaders: {
-          ...details.responseHeaders,
-          'Content-Security-Policy': [
-            "default-src 'self'; img-src 'self' data: https://xivapi.com https://*.xivapi.com https://v2.xivapi.com https://*.v2.xivapi.com https://*.finalfantasyxiv.com; connect-src 'self' https://xivapi.com https://*.xivapi.com https://v2.xivapi.com https://*.v2.xivapi.com; style-src 'self' 'unsafe-inline'; script-src 'self'"
-          ]
-        }
-      })
-    })
-  }
+  // La CSP de production est injectée en <meta> dans index.html au build
+  // (voir electron.vite.config.ts) : elle est versionnée avec la page elle-même.
 
   createWindow()
 

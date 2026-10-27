@@ -79,7 +79,7 @@ export function initUpdater(mainWindow: BrowserWindow): void {
     autoUpdater.setFeedURL({
       provider: 'github',
       owner: 'tristan-spinnewyn',
-      repo: 'Achievment-tracker'
+      repo: 'Achievement-tracker'
     })
   } catch {
     // Ignorer si déjà configuré via app-update.yml

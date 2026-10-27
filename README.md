@@ -56,10 +56,20 @@ Synchronize your progress directly from your public **Lodestone** profile, plan 
 
 ## 🚀 Installation (Windows)
 
-Download the latest release from the [Releases](https://github.com/tristan-spinnewyn/Achievment-tracker/releases) tab or build it from source:
+Download the latest release from the [Releases](https://github.com/tristan-spinnewyn/Achievement-tracker/releases) tab or build it from source:
 
 * **Setup Installer (Recommended)**: `FFXIV Achievement Tracker Setup x.y.z.exe` (includes Start Menu and desktop shortcuts).
 * **Portable Version**: `FFXIV Achievement Tracker x.y.z.exe` (standalone single executable, no installation or admin rights required).
+
+### 🔐 Verifying a download
+
+Each release ships a `SHA256SUMS.txt` file and a signed [build provenance attestation](https://docs.github.com/en/actions/security-for-github-actions/using-artifact-attestations) proving the binaries were built by this repository's release workflow:
+
+```bash
+gh attestation verify FFXIV-Achievement-Tracker-Setup-x.y.z.exe -R tristan-spinnewyn/Achievement-tracker
+```
+
+> The executables are not code-signed yet, so Windows SmartScreen may show a warning on first launch.
 
 ---
 
