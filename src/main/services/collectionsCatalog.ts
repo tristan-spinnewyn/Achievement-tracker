@@ -10,22 +10,14 @@ import type {
   CollectionType,
   Language
 } from '../../shared/types'
+import { normalizeName } from '../../shared/names'
+
+export { normalizeName }
 
 const V2 = 'https://v2.xivapi.com/api/sheet'
 const COLLECT = 'https://ffxivcollect.com/api'
 const PAGE = 500
 const ALIAS_LANGS: Language[] = ['en', 'de', 'ja']
-
-/** Normalises a name for Lodestone matching (must stay identical to repo.normalizeName). */
-export function normalizeName(s: string): string {
-  return s
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[’']/g, "'")
-    .replace(/\s+/g, ' ')
-    .trim()
-}
 
 const cap = (s: string): string => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s)
 
