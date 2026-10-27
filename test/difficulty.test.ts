@@ -6,7 +6,7 @@ import {
   getDifficultyStats,
   filterByDifficulty,
   sortByDifficulty
-} from '../src/main/utils/difficulty'
+} from '../src/main/services/difficulty'
 import { store } from '../src/main/data/store'
 
 let nextId = 1

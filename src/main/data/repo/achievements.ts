@@ -8,7 +8,7 @@ import type {
 } from '@shared/types'
 import { patchSortKey } from '@shared/names'
 import { store } from '../store'
-import { evaluateAdvancedQuery } from '../../utils/search'
+import { evaluateAdvancedQuery } from '../../services/search'
 
 // ---------------------------------------------------------------- Read / query
 

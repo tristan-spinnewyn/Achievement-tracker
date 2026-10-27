@@ -109,13 +109,13 @@ vi.mock('../src/main/data/store', () => ({
   }
 }))
 vi.mock('../src/main/services/catalog', () => ({ seedCatalogIfEmpty: mocks.seedCatalog }))
-vi.mock('../src/main/services/collections', () => ({ seedCollectionsIfEmpty: mocks.seedCollections }))
+vi.mock('../src/main/services/collectionsSync', () => ({ seedCollectionsIfEmpty: mocks.seedCollections }))
 vi.mock('../src/main/data/repo', () => ({ countPendingRecurring: () => h.pending.value }))
 vi.mock('../src/main/services/reminders', () => ({ startResetReminders: mocks.startReminders }))
 vi.mock('../src/main/ipc/handlers', () => ({ registerIpcHandlers: mocks.registerIpc }))
-vi.mock('../src/main/utils/search', () => ({ initSearchIndex: mocks.initSearch }))
+vi.mock('../src/main/services/search', () => ({ initSearchIndex: mocks.initSearch }))
 vi.mock('../src/main/utils/icons', () => ({ prefetchIcons: mocks.prefetch }))
-vi.mock('../src/main/utils/difficulty', () => ({ calculateAllDifficulties: mocks.difficulties }))
+vi.mock('../src/main/services/difficulty', () => ({ calculateAllDifficulties: mocks.difficulties }))
 vi.mock('../src/main/services/updater', () => ({ initUpdater: mocks.initUpdater }))
 
 /** Imports the entry point and waits for `app.whenReady()` to complete. */

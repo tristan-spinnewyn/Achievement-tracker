@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { normalizeName, patchSortKey } from '../src/shared/names'
 import * as repo from '../src/main/data/repo'
-import * as collectionsCatalog from '../src/main/services/collectionsCatalog'
+import * as collectionsBuilder from '../src/main/services/collectionsBuilder'
 
 describe('normalizeName', () => {
   it('strips accents, unifies apostrophes and collapses whitespace', () => {
@@ -10,7 +10,7 @@ describe('normalizeName', () => {
 
   it('is the single implementation used by repo and the collections builder', () => {
     expect(repo.normalizeName).toBe(normalizeName)
-    expect(collectionsCatalog.normalizeName).toBe(normalizeName)
+    expect(collectionsBuilder.normalizeName).toBe(normalizeName)
   })
 })
 

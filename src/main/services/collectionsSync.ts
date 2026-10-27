@@ -4,7 +4,7 @@ import { join } from 'path'
 import type { CollectionSyncResult, CollectionType, CollectionsSnapshot, Region } from '@shared/types'
 import { store } from '../data/store'
 import * as repo from '../data/repo'
-import { buildCollections } from './collectionsCatalog'
+import { buildCollections } from './collectionsBuilder'
 import { fetchLodestoneText, lodestoneCharacterUrl } from './lodestone'
 import { mapLimit } from '../utils/concurrency'
 
