@@ -4,13 +4,25 @@
  */
 
 import { app } from 'electron'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
+import { existsSync, mkdirSync, writeFileSync } from 'fs'
 import { join } from 'path'
+import { pathToFileURL } from 'url'
 import { fetchWithRetry } from './fetch'
 
 const ICON_CACHE_DIR = 'icon-cache'
-const XIVAPI_BASE = 'https://xivapi.com'
 const XIVAPI_V2_BASE = 'https://v2.xivapi.com'
+
+/**
+ * Format accepté pour un chemin d'icône : segments alphanumériques séparés par « / »
+ * et une extension (ex: "ui/icon/062000/062904.tex", "/i/000000/000123.png").
+ * Exclut « .. », « \ », « : » et toute URL : le chemin sert à la fois de nom de
+ * fichier local et de paramètre de requête, il ne doit jamais sortir du cache.
+ */
+const SAFE_ICON_PATH = /^\/?[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*\.[A-Za-z0-9]+$/
+
+export function isSafeIconPath(iconPath: string | null | undefined): iconPath is string {
+  return typeof iconPath === 'string' && iconPath.length <= 256 && SAFE_ICON_PATH.test(iconPath)
+}
 
 export interface IconCache {
   /** Chemin vers le fichier d'icône local, ou null si non disponible. */
@@ -23,10 +35,10 @@ export interface IconCache {
  * Récupère le chemin du dossier de cache des icônes.
  */
 function getCacheDir(): string {
-  const dir = app.isPackaged
-    ? join(process.resourcesPath, ICON_CACHE_DIR)
-    : join(app.getAppPath(), ICON_CACHE_DIR)
-  
+  // userData plutôt que le dossier d'installation : ce dernier ne doit pas être
+  // modifiable à l'exécution (et il est remplacé à chaque mise à jour).
+  const dir = join(app.getPath('userData'), ICON_CACHE_DIR)
+
   // Créer le dossier s'il n'existe pas
   try {
     mkdirSync(dir, { recursive: true })
@@ -41,9 +53,9 @@ function getCacheDir(): string {
  * Convertit un chemin d'icône XIVAPI en nom de fichier valide.
  * Ex: "/i/000000/000123.png" -> "000000_000123.png"
  */
-function iconPathToFilename(iconPath: string | null): string | null {
-  if (!iconPath) return null
-  
+export function iconPathToFilename(iconPath: string | null): string | null {
+  if (!isSafeIconPath(iconPath)) return null
+
   // Enlever le préfixe "/i/" et remplacer les "/" par "_"
   const cleanPath = iconPath.replace(/^\/i\//, '').replace(/\//g, '_')
   return cleanPath
@@ -76,11 +88,17 @@ function getLocalIconPath(iconPath: string | null): string | null {
 }
 
 /**
+ * URL de l'asset PNG sur XIVAPI v2 (seul hôte contacté pour les icônes).
+ * L'API attend un chemin relatif ("ui/icon/…") : avec un « / » initial elle répond 404.
+ */
+export function remoteAssetUrl(iconPath: string): string {
+  return `${XIVAPI_V2_BASE}/api/asset?path=${encodeURIComponent(iconPath.replace(/^\//, ''))}&format=png`
+}
+
+/**
  * Télécharge une icône depuis XIVAPI et la stocke dans le cache.
  */
 async function downloadIcon(iconPath: string): Promise<string | null> {
-  if (!iconPath) return null
-  
   const filename = iconPathToFilename(iconPath)
   if (!filename) return null
   
@@ -93,25 +111,7 @@ async function downloadIcon(iconPath: string): Promise<string | null> {
   }
   
   try {
-    // Normaliser l'URL de l'icône pour utiliser XIVAPI v2 asset endpoint
-    let remoteUrl: string
-    // Les chemins d'icônes de XIVAPI v2 sont au format "/ui/icon/000000/000000.tex"
-    // On utilise l'endpoint /api/asset qui retourne le fichier brut
-    if (iconPath.startsWith('/')) {
-      // Chemin absolu, utiliser l'API v2
-      remoteUrl = `${XIVAPI_V2_BASE}/api/asset?path=${encodeURIComponent(iconPath)}&format=png`
-    } else if (iconPath.includes('/')) {
-      // Chemin relatif avec slash, utiliser l'API v2
-      remoteUrl = `${XIVAPI_V2_BASE}/api/asset?path=${encodeURIComponent('/' + iconPath)}&format=png`
-    } else if (!iconPath.startsWith('http://') && !iconPath.startsWith('https://')) {
-      // Chemin simple, utiliser l'API v2
-      remoteUrl = `${XIVAPI_V2_BASE}/api/asset?path=${encodeURIComponent('/' + iconPath)}&format=png`
-    } else {
-      // URL complète, utiliser tel quel
-      remoteUrl = iconPath
-    }
-    
-    const response = await fetchWithRetry(remoteUrl)
+    const response = await fetchWithRetry(remoteAssetUrl(iconPath))
     
     if (!response.ok) {
       return null
@@ -161,27 +161,25 @@ export async function getIconPathWithDownload(iconPath: string | null): Promise<
  * Utilisé par le renderer pour afficher les icônes.
  */
 export function getIconUrl(iconPath: string | null): string | null {
-  if (!iconPath) return null
-  
+  if (!isSafeIconPath(iconPath)) return null
+
   const localPath = getLocalIconPath(iconPath)
   if (localPath) {
-    // Retourner un chemin file:// pour usage direct
-    return `file://${localPath}`
+    // Retourner une URL file:// correctement encodée pour usage direct
+    return pathToFileURL(localPath).href
   }
-  
+
   // Fallback sur l'URL distante via XIVAPI v2
-  if (iconPath.startsWith('/')) {
-    return `${XIVAPI_V2_BASE}/api/asset?path=${encodeURIComponent(iconPath)}&format=png`
-  }
-  return `${XIVAPI_V2_BASE}/api/asset?path=${encodeURIComponent('/' + iconPath)}&format=png`
+  return remoteAssetUrl(iconPath)
 }
 
 /**
  * Précharge plusieurs icônes en arrière-plan.
  */
 export async function prefetchIcons(iconPaths: (string | null)[]): Promise<void> {
-  const uniquePaths = [...new Set(iconPaths.filter(Boolean))] as string[]
-  
+  if (!Array.isArray(iconPaths)) return
+  const uniquePaths = [...new Set(iconPaths.filter(isSafeIconPath))]
+
   // Limiter le nombre de téléchargements simultanés
   const CONCURRENCY = 5
   const queue: string[] = []

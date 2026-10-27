@@ -1,8 +1,70 @@
 import { dialog, app, shell } from 'electron'
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'fs'
 import { join } from 'path'
-import type { AutoBackupInfo } from '@shared/types'
+import type { AutoBackupInfo, Settings } from '@shared/types'
 import { store, type UserData } from '../data/store'
+import { isSafeIconPath } from '../utils/icons'
+
+/** Taille max d'une sauvegarde importée (les vraies font quelques centaines de Ko). */
+const MAX_BACKUP_BYTES = 50 * 1024 * 1024
+
+const RECORD_KEYS = ['progress', 'userMeta', 'tagsByAchievement', 'collections', 'collectionHashCache'] as const
+const ARRAY_KEYS = ['syncLog', 'undoStack', 'redoStack'] as const
+const REGIONS = ['na', 'eu', 'fr', 'de', 'ja']
+const LANGUAGES = ['fr', 'en', 'de', 'ja']
+
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v)
+const isNullableString = (v: unknown): v is string | null => v === null || typeof v === 'string'
+
+/** Ne garde que les paramètres connus, avec le bon type (les autres reprennent leur défaut). */
+function sanitizeSettings(raw: Record<string, unknown>): Partial<Settings> {
+  const out: Partial<Settings> = {}
+  if (isNullableString(raw.lodestoneCharacterId)) out.lodestoneCharacterId = raw.lodestoneCharacterId
+  if (typeof raw.region === 'string' && REGIONS.includes(raw.region)) out.region = raw.region as Settings['region']
+  if (typeof raw.language === 'string' && LANGUAGES.includes(raw.language)) out.language = raw.language as Settings['language']
+  if (isNullableString(raw.lastSyncAt)) out.lastSyncAt = raw.lastSyncAt
+  if (raw.theme === 'dark' || raw.theme === 'light') out.theme = raw.theme
+  if (typeof raw.autoSync === 'boolean') out.autoSync = raw.autoSync
+  if (typeof raw.autoBackupDocuments === 'boolean') out.autoBackupDocuments = raw.autoBackupDocuments
+  const w = raw.suggestionWeights
+  if (isRecord(w) && ['priority', 'points', 'categoryProximity'].every((k) => Number.isFinite(w[k]))) {
+    out.suggestionWeights = w as unknown as Settings['suggestionWeights']
+  }
+  return out
+}
+
+/**
+ * Valide la structure d'une sauvegarde importée (fichier non fiable) :
+ * clés inconnues ignorées, types vérifiés, chemins d'icônes suspects neutralisés.
+ * Retourne null si le fichier n'a pas la forme d'une sauvegarde.
+ */
+export function sanitizeImportedUser(raw: unknown): Partial<UserData> | null {
+  if (!isRecord(raw) || (!raw.settings && !raw.progress && !raw.collections)) return null
+  const out: Partial<UserData> = {}
+
+  if ('settings' in raw) {
+    if (!isRecord(raw.settings)) return null
+    out.settings = sanitizeSettings(raw.settings) as Settings
+  }
+  for (const key of RECORD_KEYS) {
+    if (!(key in raw)) continue
+    if (!isRecord(raw[key])) return null
+    ;(out as Record<string, unknown>)[key] = raw[key]
+  }
+  for (const key of ARRAY_KEYS) {
+    if (!(key in raw)) continue
+    if (!Array.isArray(raw[key])) return null
+    ;(out as Record<string, unknown>)[key] = raw[key]
+  }
+  if ('recurringTasks' in raw) {
+    if (!Array.isArray(raw.recurringTasks)) return null
+    out.recurringTasks = raw.recurringTasks
+      .filter((t): t is Record<string, unknown> => isRecord(t) && typeof t.id === 'string' && typeof t.name === 'string')
+      .map((t) => ({ ...t, iconPath: isSafeIconPath(t.iconPath as string) ? t.iconPath : null })) as UserData['recurringTasks']
+  }
+  return out
+}
 
 export interface BackupResult {
   ok: boolean
@@ -78,8 +140,11 @@ export async function importUserData(): Promise<BackupResult> {
   })
   if (res.canceled || res.filePaths.length === 0) return { ok: false, canceled: true }
   try {
-    const data = JSON.parse(readFileSync(res.filePaths[0], 'utf8')) as Partial<UserData>
-    if (!data || typeof data !== 'object' || (!data.settings && !data.progress && !data.collections)) {
+    if (statSync(res.filePaths[0]).size > MAX_BACKUP_BYTES) {
+      return { ok: false, error: 'Fichier de sauvegarde invalide (trop volumineux).' }
+    }
+    const data = sanitizeImportedUser(JSON.parse(readFileSync(res.filePaths[0], 'utf8')))
+    if (!data) {
       return { ok: false, error: 'Fichier de sauvegarde invalide.' }
     }
     store.replaceUser(data)
