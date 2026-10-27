@@ -7,10 +7,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tristan-spinnewyn/Achievment-tracker.git"
+    "url": "https://github.com/tristan-spinnewyn/Achievement-tracker.git"
   },
   "private": true,
   "scripts": {
+    "predev": "node -e \"require('electron')\"",
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
