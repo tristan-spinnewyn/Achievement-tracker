@@ -15,13 +15,18 @@ import { fileURLToPath } from 'node:url'
 
 const SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/
 
+/** @param {string} version */
+export function assertSemver(version) {
+  if (!SEMVER.test(version)) throw new Error(`Version "${version}" is not a valid semver.`)
+}
+
 /**
  * @param {{ tag?: string, packageVersion: string }} input
  * @returns {{ tag: string, version: string }}
  */
 export function resolveReleaseVersion({ tag, packageVersion }) {
   const version = tag ? tag.replace(/^v/, '') : packageVersion
-  if (!SEMVER.test(version)) throw new Error(`Version "${version}" is not a valid semver.`)
+  assertSemver(version)
   if (version !== packageVersion) {
     throw new Error(
       `Tag v${version} does not match package.json version ${packageVersion}. ` +
