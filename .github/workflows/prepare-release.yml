@@ -1,0 +1,71 @@
+name: Prepare release
+
+# One-click release, step 1: bumps package.json on a release/vX.Y.Z branch and
+# opens the PR. main is protected, so the bump cannot be pushed to it directly.
+# Merging that PR publishes the release (see tag-release.yml).
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Version bump'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: patch
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  open-release-pr:
+    name: Open release PR
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # push the release branch
+      pull-requests: write # open the release PR
+      actions: write # dispatch CI on the release branch
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.x
+
+      - name: Bump package.json and package-lock.json
+        id: bump
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: echo "tag=$(npm version "$BUMP" --no-git-tag-version)" >> "$GITHUB_OUTPUT"
+
+      - name: Push the release branch
+        env:
+          TAG: ${{ steps.bump.outputs.tag }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -c "release/$TAG"
+          git commit -am "chore(release): bump version to ${TAG#v}"
+          git push origin "release/$TAG"
+
+      - name: Open the release PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.bump.outputs.tag }}
+        run: |
+          gh pr create --base main --head "release/$TAG" \
+            --title "chore(release): bump version to ${TAG#v}" \
+            --body "Bumps the version to ${TAG#v}. Merging this PR publishes the $TAG release."
+          # A PR opened with GITHUB_TOKEN triggers no workflow: dispatch CI so the
+          # required status checks run on the release branch.
+          gh workflow run ci.yml --ref "release/$TAG"

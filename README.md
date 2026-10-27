@@ -116,16 +116,12 @@ npm run dist                 # NSIS installer + portable executable (release/)
 
 ### Releasing
 
-`package.json` is the single source of truth for the version. `main` is protected, so the version is bumped through a pull request before tagging:
+`package.json` is the single source of truth for the version. `main` is protected, so the version is bumped through a pull request:
 
-```bash
-npm version <major|minor|patch> --no-git-tag-version   # bump package.json + package-lock.json
-# open a PR with the bump, merge it, then tag the merge commit:
-git tag -a vX.Y.Z -m "Release vX.Y.Z" origin/main
-git push origin vX.Y.Z
-```
+1. Run the **Prepare release** workflow (Actions tab, or `gh workflow run prepare-release.yml -f bump=minor`) and pick `patch`, `minor` or `major`. It bumps `package.json` + `package-lock.json` on a `release/vX.Y.Z` branch, opens the PR and runs CI on it.
+2. Merge the PR. The **Tag release** workflow sees a version with no tag yet and starts the **Release** workflow, which builds the binaries and publishes the `vX.Y.Z` tag and GitHub Release.
 
-The tag triggers the release workflow, which fails early if the tag does not match `package.json`.
+Do not push the tag yourself: the release would run twice. The Release workflow fails early if the tag does not match `package.json`.
 
 ---
 
