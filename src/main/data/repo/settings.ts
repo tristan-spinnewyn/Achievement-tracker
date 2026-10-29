@@ -1,5 +1,6 @@
 import type { Settings, SyncLogEntry } from '@shared/types'
 import { store } from '../store'
+import { sanitizeSettings } from '../sanitize'
 
 const MAX_SYNC_LOG = 50
 
@@ -10,7 +11,7 @@ export function getSettings(): Settings {
 }
 
 export function updateSettings(partial: Partial<Settings>): Settings {
-  store.user.settings = { ...store.user.settings, ...partial }
+  store.user.settings = { ...store.user.settings, ...sanitizeSettings(partial) }
   store.saveUser()
   return store.user.settings
 }

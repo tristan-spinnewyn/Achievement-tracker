@@ -17,6 +17,7 @@ import type {
   UndoableAction,
   UserMeta
 } from '@shared/types'
+import { sanitizeImportedUser } from './sanitize'
 
 export interface CatalogData {
   generatedAt: string | null
@@ -146,8 +147,9 @@ class Store {
         const docFolder = join(app.getPath('documents'), 'FFXIV Achievement Tracker')
         const docPath = join(docFolder, 'userdata-backup.json')
         if (existsSync(docPath)) {
-          const docData = JSON.parse(readFileSync(docPath, 'utf8')) as Partial<UserData>
-          if (docData && (docData.progress || docData.collections || docData.settings)) {
+          // The Documents folder is shared with other programs: treat the file as untrusted.
+          const docData = sanitizeImportedUser(JSON.parse(readFileSync(docPath, 'utf8')))
+          if (docData) {
             console.log(`[store] Auto-restoring from the Documents backup: ${docPath}`)
             initialUser = docData
           }

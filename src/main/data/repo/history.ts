@@ -1,6 +1,7 @@
 import type { Priority, UndoableAction } from '@shared/types'
 import { store } from '../store'
 import { ensureMeta } from './meta'
+import { isAchievementId } from '../sanitize'
 
 // ---------------------------------------------------------------- Undo/Redo history
 
@@ -78,6 +79,8 @@ export function canRedo(): boolean {
  * Restores an achievement's state from saved data.
  */
 function restoreActionState(data: Record<string, unknown>, achievementId: number): void {
+  // The history is persisted on disk: never trust an entry blindly.
+  if (!isAchievementId(achievementId)) return
   const id = String(achievementId)
 
   // Restore progress

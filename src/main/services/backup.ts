@@ -1,70 +1,14 @@
 import { dialog, app, shell } from 'electron'
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'fs'
 import { join } from 'path'
-import type { AutoBackupInfo, Settings } from '@shared/types'
-import { store, type UserData } from '../data/store'
-import { isSafeIconPath } from '../utils/icons'
+import type { AutoBackupInfo } from '@shared/types'
+import { store } from '../data/store'
+import { sanitizeImportedUser } from '../data/sanitize'
+
+export { sanitizeImportedUser }
 
 /** Max size of an imported backup (real ones are a few hundred KB). */
 const MAX_BACKUP_BYTES = 50 * 1024 * 1024
-
-const RECORD_KEYS = ['progress', 'userMeta', 'tagsByAchievement', 'collections', 'collectionHashCache'] as const
-const ARRAY_KEYS = ['syncLog', 'undoStack', 'redoStack'] as const
-const REGIONS = ['na', 'eu', 'fr', 'de', 'ja']
-const LANGUAGES = ['fr', 'en', 'de', 'ja']
-
-const isRecord = (v: unknown): v is Record<string, unknown> =>
-  typeof v === 'object' && v !== null && !Array.isArray(v)
-const isNullableString = (v: unknown): v is string | null => v === null || typeof v === 'string'
-
-/** Keeps only known settings, with the right type (the others fall back to their default). */
-function sanitizeSettings(raw: Record<string, unknown>): Partial<Settings> {
-  const out: Partial<Settings> = {}
-  if (isNullableString(raw.lodestoneCharacterId)) out.lodestoneCharacterId = raw.lodestoneCharacterId
-  if (typeof raw.region === 'string' && REGIONS.includes(raw.region)) out.region = raw.region as Settings['region']
-  if (typeof raw.language === 'string' && LANGUAGES.includes(raw.language)) out.language = raw.language as Settings['language']
-  if (isNullableString(raw.lastSyncAt)) out.lastSyncAt = raw.lastSyncAt
-  if (raw.theme === 'dark' || raw.theme === 'light') out.theme = raw.theme
-  if (typeof raw.autoSync === 'boolean') out.autoSync = raw.autoSync
-  if (typeof raw.autoBackupDocuments === 'boolean') out.autoBackupDocuments = raw.autoBackupDocuments
-  const w = raw.suggestionWeights
-  if (isRecord(w) && ['priority', 'points', 'categoryProximity'].every((k) => Number.isFinite(w[k]))) {
-    out.suggestionWeights = w as unknown as Settings['suggestionWeights']
-  }
-  return out
-}
-
-/**
- * Validates the structure of an imported backup (untrusted file):
- * unknown keys ignored, types checked, suspicious icon paths neutralised.
- * Returns null if the file does not look like a backup.
- */
-export function sanitizeImportedUser(raw: unknown): Partial<UserData> | null {
-  if (!isRecord(raw) || (!raw.settings && !raw.progress && !raw.collections)) return null
-  const out: Partial<UserData> = {}
-
-  if ('settings' in raw) {
-    if (!isRecord(raw.settings)) return null
-    out.settings = sanitizeSettings(raw.settings) as Settings
-  }
-  for (const key of RECORD_KEYS) {
-    if (!(key in raw)) continue
-    if (!isRecord(raw[key])) return null
-    ;(out as Record<string, unknown>)[key] = raw[key]
-  }
-  for (const key of ARRAY_KEYS) {
-    if (!(key in raw)) continue
-    if (!Array.isArray(raw[key])) return null
-    ;(out as Record<string, unknown>)[key] = raw[key]
-  }
-  if ('recurringTasks' in raw) {
-    if (!Array.isArray(raw.recurringTasks)) return null
-    out.recurringTasks = raw.recurringTasks
-      .filter((t): t is Record<string, unknown> => isRecord(t) && typeof t.id === 'string' && typeof t.name === 'string')
-      .map((t) => ({ ...t, iconPath: isSafeIconPath(t.iconPath as string) ? t.iconPath : null })) as UserData['recurringTasks']
-  }
-  return out
-}
 
 export interface BackupResult {
   ok: boolean
