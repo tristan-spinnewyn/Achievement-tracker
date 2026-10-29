@@ -3,10 +3,12 @@ import { store } from '../store'
 import { countCompleted } from './achievements'
 import { pushUndoAction } from './history'
 import { ensureMeta } from './meta'
+import { assertAchievementId, assertString } from '../sanitize'
 
 // ---------------------------------------------------------------- Mutations
 
 export function setManualCompletion(id: number, completed: boolean): void {
+  assertAchievementId(id)
   const now = new Date().toISOString()
   // Lock: an achievement obtained via the Lodestone cannot be unchecked manually.
   if (!completed && store.user.progress[id]?.source === 'lodestone') return
@@ -108,6 +110,8 @@ export function setFocus(id: number, inFocus: boolean): void {
 }
 
 export function reorderFocus(ids: number[]): void {
+  if (!Array.isArray(ids)) throw new TypeError('Invalid focus order')
+  ids.forEach(assertAchievementId)
   ids.forEach((id, i) => {
     ensureMeta(id).focusOrder = i + 1
   })
@@ -153,6 +157,9 @@ export function setDeadline(id: number, deadline: string | null): void {
 }
 
 export function setAchievementTags(id: number, tags: string[]): void {
+  assertAchievementId(id)
+  if (!Array.isArray(tags)) throw new TypeError('Invalid tags')
+  tags.forEach((t) => assertString(t, 'tag'))
   const previousData: Record<string, unknown> = {
     tags: [...(store.user.tagsByAchievement[id] ?? [])]
   }

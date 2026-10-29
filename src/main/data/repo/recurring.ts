@@ -2,6 +2,7 @@ import type { RecurringTask, RecurringType } from '@shared/types'
 import { randomUUID } from 'crypto'
 import { isDoneThisPeriod, periodStart, previousPeriodStart } from '@shared/resets'
 import { store } from '../store'
+import { assertAchievementId, assertRecurringType, assertString, safeIconPathOrNull } from '../sanitize'
 
 // ---------------------------------------------------------------- Recurring tasks
 
@@ -25,12 +26,15 @@ export function addRecurringTask(input: {
   achievementId?: number | null
   iconPath?: string | null
 }): RecurringTask {
+  assertString(input.name, 'task name')
+  assertRecurringType(input.type)
+  if (input.achievementId != null) assertAchievementId(input.achievementId)
   const task: RecurringTask = {
     id: randomUUID(),
     name: input.name.trim(),
     type: input.type,
     achievementId: input.achievementId ?? null,
-    iconPath: input.iconPath ?? null,
+    iconPath: safeIconPathOrNull(input.iconPath),
     lastCompletedAt: null,
     streak: 0,
     createdAt: new Date().toISOString()

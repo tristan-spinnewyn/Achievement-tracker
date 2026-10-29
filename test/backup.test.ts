@@ -168,6 +168,41 @@ describe('Automatic mirror backup in My Documents', () => {
     rmSync(validFile, { force: true })
   })
 
+  it('reports an error when the export destination is not writable', async () => {
+    store.init()
+    // A directory cannot be overwritten as a file
+    setMockDialog.save({ canceled: false, filePath: tmpdir() })
+    const res = await exportUserData()
+    expect(res.ok).toBe(false)
+    expect(res.error).toBeTruthy()
+  })
+
+  it('rejects an oversized backup without reading it', async () => {
+    const { closeSync, openSync, ftruncateSync } = require('fs')
+    store.init()
+    const bigFile = join(tmpdir(), 'oversized-test.json')
+    const fd = openSync(bigFile, 'w')
+    ftruncateSync(fd, 50 * 1024 * 1024 + 1) // sparse file, nothing actually written
+    closeSync(fd)
+    setMockDialog.open({ canceled: false, filePaths: [bigFile] })
+    const res = await importUserData()
+    expect(res.ok).toBe(false)
+    expect(res.error).toContain('trop volumineux')
+    rmSync(bigFile, { force: true })
+  })
+
+  it('reports an error for a malformed JSON backup', async () => {
+    const { writeFileSync } = require('fs')
+    store.init()
+    const badFile = join(tmpdir(), 'malformed-test.json')
+    writeFileSync(badFile, '{ not json', 'utf8')
+    setMockDialog.open({ canceled: false, filePaths: [badFile] })
+    const res = await importUserData()
+    expect(res.ok).toBe(false)
+    expect(res.error).toBeTruthy()
+    rmSync(badFile, { force: true })
+  })
+
   it('sanitises an imported backup (untrusted file)', () => {
     expect(sanitizeImportedUser(null)).toBeNull()
     expect(sanitizeImportedUser([1, 2])).toBeNull()
