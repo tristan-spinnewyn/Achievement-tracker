@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Permissions of the main window. App commands are allowed through the invoke handler; no core plugin permission is granted yet.",
+  "windows": ["main"],
+  "permissions": []
+}
