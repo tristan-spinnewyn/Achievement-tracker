@@ -25,7 +25,14 @@
     "build:collections": "tsx scripts/build-collections.ts",
     "make:icon": "node scripts/make-icon.cjs",
     "dist": "electron-vite build && electron-builder",
-    "dist:dir": "electron-vite build && electron-builder --dir"
+    "dist:dir": "electron-vite build && electron-builder --dir",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "tauri:renderer:dev": "vite --config vite.tauri.config.ts",
+    "tauri:renderer:build": "vite build --config vite.tauri.config.ts",
+    "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "test:rust:coverage": "cargo llvm-cov --manifest-path src-tauri/Cargo.toml --fail-under-lines 80 --ignore-filename-regex \"(main|lib).rs$\""
   },
   "dependencies": {
     "electron-updater": "^6.8.11",
@@ -39,6 +46,8 @@
     "@tailwindcss/postcss": "^4.3.5",
     "@tanstack/react-table": "^9.3.1",
     "@tanstack/react-virtual": "^3.14.26",
+    "@tauri-apps/api": "^2.12.5",
+    "@tauri-apps/cli": "^2.12.6",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.10",
