@@ -108,8 +108,18 @@ jobs:
           rustup toolchain install stable --profile minimal --component llvm-tools-preview
           rustup default stable
 
+      # Caches ~/.cargo and src-tauri/target (keyed on Cargo.lock): without it,
+      # Tauri and its dependencies are recompiled from scratch on every run.
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: src-tauri
+
+      # Prebuilt binary with checksum verification, instead of compiling it (~2.5 min).
       - name: Install cargo-llvm-cov
-        run: cargo install cargo-llvm-cov --locked
+        uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39 # v2.90.3
+        with:
+          tool: cargo-llvm-cov
 
       - name: Run Rust tests with coverage threshold (80% lines)
         run: npm run test:rust:coverage
