@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use super::user::SyncSource;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum CollectionType {
     Mount,
@@ -19,6 +19,24 @@ pub enum CollectionType {
     Spell,
     Tripletriad,
     Beast,
+}
+
+impl CollectionType {
+    /// Every type, in the order shown by the UI.
+    pub const ALL: [Self; 12] = [
+        Self::Mount,
+        Self::Minion,
+        Self::Orchestrion,
+        Self::Emote,
+        Self::Fashion,
+        Self::Hairstyle,
+        Self::Barding,
+        Self::Title,
+        Self::Faceaccessory,
+        Self::Spell,
+        Self::Tripletriad,
+        Self::Beast,
+    ];
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
