@@ -1,18 +1,33 @@
-//! In-memory application state shared by the Tauri commands.
+//! Application state shared by the Tauri commands.
 
-use std::path::Path;
+use std::io;
+use std::sync::{Mutex, MutexGuard};
 
-use crate::models::settings::Settings;
-use crate::store::user_data::{load_settings, USER_DATA_FILE};
+use crate::store::paths::StorePaths;
+use crate::store::Store;
 
 pub struct AppState {
-    pub settings: Settings,
+    store: Mutex<Store>,
 }
 
 impl AppState {
-    /// Loads the state from the app data folder.
-    pub fn load(data_dir: &Path) -> Self {
-        Self { settings: load_settings(&data_dir.join(USER_DATA_FILE)) }
+    pub fn new(store: Store) -> Self {
+        Self {
+            store: Mutex::new(store),
+        }
+    }
+
+    /// Loads the store from its files.
+    pub fn load(paths: StorePaths) -> io::Result<Self> {
+        Store::load(paths).map(Self::new)
+    }
+
+    /// Exclusive access to the store. A panic in another command does not
+    /// make the data unusable: the lock is recovered instead of propagating it.
+    pub fn store(&self) -> MutexGuard<'_, Store> {
+        self.store
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 }
 
@@ -21,11 +36,37 @@ mod tests {
     use super::*;
     use crate::models::settings::Region;
 
-    #[test]
-    fn loads_settings_from_the_user_file_in_the_data_folder() {
-        let dir = tempfile::tempdir().unwrap();
-        std::fs::write(dir.path().join(USER_DATA_FILE), r#"{"settings":{"region":"ja"}}"#).unwrap();
+    fn paths(dir: &tempfile::TempDir) -> StorePaths {
+        StorePaths {
+            data_dir: dir.path().to_path_buf(),
+            documents_dir: None,
+        }
+    }
 
-        assert_eq!(AppState::load(dir.path()).settings.region, Region::Ja);
+    #[test]
+    fn loads_the_store_from_the_data_folder() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("userdata.json"),
+            r#"{"settings":{"region":"ja"}}"#,
+        )
+        .unwrap();
+
+        let state = AppState::load(paths(&dir)).unwrap();
+
+        assert_eq!(state.store().user.settings.region, Region::Ja);
+    }
+
+    #[test]
+    fn store_stays_usable_after_a_panic_while_locked() {
+        let dir = tempfile::tempdir().unwrap();
+        let state = AppState::load(paths(&dir)).unwrap();
+
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _guard = state.store();
+            panic!("command failed");
+        }));
+
+        assert_eq!(state.store().user.settings.region, Region::Eu);
     }
 }

@@ -38,7 +38,11 @@ pub struct SuggestionWeights {
 
 impl Default for SuggestionWeights {
     fn default() -> Self {
-        Self { priority: 3.0, points: 1.0, category_proximity: 2.0 }
+        Self {
+            priority: 3.0,
+            points: 1.0,
+            category_proximity: 2.0,
+        }
     }
 }
 
