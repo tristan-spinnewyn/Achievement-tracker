@@ -7,21 +7,29 @@ use crate::state::AppState;
 
 #[tauri::command]
 pub fn settings_get(state: State<'_, AppState>) -> Settings {
-    state.settings.clone()
+    state.store().user.settings.clone()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::models::settings::Theme;
+    use crate::store::paths::StorePaths;
+    use crate::store::Store;
     use tauri::Manager;
 
     #[test]
-    fn settings_get_returns_the_loaded_settings() {
+    fn settings_get_returns_the_stored_settings() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut store = Store::load(StorePaths {
+            data_dir: dir.path().to_path_buf(),
+            documents_dir: None,
+        })
+        .unwrap();
+        store.user.settings.theme = Theme::Light;
         let app = tauri::test::mock_app();
-        let settings = Settings { theme: Theme::Light, ..Settings::default() };
-        app.manage(AppState { settings: settings.clone() });
+        app.manage(AppState::new(store));
 
-        assert_eq!(settings_get(app.state::<AppState>()), settings);
+        assert_eq!(settings_get(app.state::<AppState>()).theme, Theme::Light);
     }
 }

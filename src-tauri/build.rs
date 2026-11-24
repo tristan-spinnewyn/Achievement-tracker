@@ -9,7 +9,9 @@ fn main() {
 }
 
 fn embed_windows_manifest() {
-    let manifest = std::env::current_dir().unwrap().join("windows-app-manifest.xml");
+    let manifest = std::env::current_dir()
+        .unwrap()
+        .join("windows-app-manifest.xml");
     println!("cargo:rerun-if-changed={}", manifest.display());
     if std::env::var("CARGO_CFG_TARGET_ENV").as_deref() == Ok("msvc") {
         println!("cargo:rustc-link-arg=/MANIFEST:EMBED");
