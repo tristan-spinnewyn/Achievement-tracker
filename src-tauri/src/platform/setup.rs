@@ -2,6 +2,7 @@
 //! background work (icon prefetch, recurring task notifications).
 
 use std::error::Error;
+use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -16,6 +17,9 @@ use crate::services::reminders::{notify_at_next_reset, notify_pending, RESET_KIN
 use crate::services::snapshots::Snapshots;
 use crate::services::updater::UpdaterState;
 use crate::state::AppState;
+use crate::store::electron_migration::{
+    migrate_electron_data, ElectronMigration, ELECTRON_DATA_FOLDER,
+};
 use crate::store::paths::{StorePaths, DOCUMENTS_FOLDER_NAME};
 
 /// Icons of the first catalog achievements, downloaded in the background at startup.
@@ -32,6 +36,11 @@ pub fn setup<R: Runtime>(app: &mut App<R>) -> Result<(), Box<dyn Error>> {
             .ok()
             .map(|d| d.join(DOCUMENTS_FOLDER_NAME)),
     };
+    let electron_data = app
+        .path()
+        .config_dir()
+        .ok()
+        .and_then(|dir| take_over_electron_data(&dir.join(ELECTRON_DATA_FOLDER), &paths));
     let snapshots = app
         .path()
         .resource_dir()
@@ -50,9 +59,25 @@ pub fn setup<R: Runtime>(app: &mut App<R>) -> Result<(), Box<dyn Error>> {
     app.manage(icons);
     app.manage(UpdaterState::default());
 
-    create_main_window(app.handle())?;
+    let electron_bounds = electron_data.and_then(|migration| migration.window);
+    create_main_window(app.handle(), electron_bounds.as_ref())?;
     start_recurring_notifications(app.handle());
     Ok(())
+}
+
+/// Copies the Electron app's data on the first launch. A failure is only logged:
+/// the app then starts like a new install, and the next launch tries again.
+fn take_over_electron_data(electron_dir: &Path, paths: &StorePaths) -> Option<ElectronMigration> {
+    migrate_electron_data(electron_dir, paths)
+        .inspect_err(|err| eprintln!("[setup] cannot copy the Electron app data: {err}"))
+        .ok()
+        .flatten()
+        .inspect(|migration| {
+            eprintln!(
+                "[setup] copied from the Electron app: {}",
+                migration.copied.join(", ")
+            );
+        })
 }
 
 fn prefetch_startup_icons(state: &AppState, icons: &IconCache, net: &Network) {
