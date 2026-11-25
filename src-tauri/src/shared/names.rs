@@ -1,0 +1,91 @@
+//! Name and patch helpers (port of `src/shared/names.ts`).
+
+use std::cmp::Ordering;
+
+use unicode_normalization::char::is_combining_mark;
+use unicode_normalization::UnicodeNormalization;
+
+/// Lowercase without accents (NFD, combining marks removed).
+fn fold(text: &str) -> String {
+    text.nfd()
+        .filter(|c| !is_combining_mark(*c))
+        .collect::<String>()
+        .to_lowercase()
+}
+
+/// Normalises a name for Lodestone matching: no accents, unified apostrophes, collapsed whitespace.
+pub fn normalize_name(name: &str) -> String {
+    fold(name)
+        .replace('’', "'")
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+/// Patch sort key: "7.51" -> 751, "7.5" -> 750, "2.0" -> 200, "6.5a" -> 650.1.
+/// A single digit after the dot is tenths. None or unparsable -> -1 (sorted last).
+pub fn patch_sort_key(patch: Option<&str>) -> f64 {
+    let Some(patch) = patch else { return -1.0 };
+    let (major, minor) = patch.split_once('.').unwrap_or((patch, "0"));
+    let Ok(major) = major.parse::<u32>() else {
+        return -1.0;
+    };
+    let digits_end = minor
+        .find(|c: char| !c.is_ascii_digit())
+        .unwrap_or(minor.len());
+    let (digits, suffix) = minor.split_at(digits_end);
+    let letter = match suffix.as_bytes() {
+        [] => Some(0.0),
+        [l] if l.is_ascii_alphabetic() => Some(f64::from(l.to_ascii_lowercase() - b'a' + 1)),
+        _ => None,
+    };
+    let (base, letter) = match (digits.parse::<u32>(), letter) {
+        (Ok(n), Some(letter)) if digits.len() == 1 => (f64::from(n) * 10.0, letter),
+        (Ok(n), Some(letter)) => (f64::from(n), letter),
+        _ => (0.0, 0.0),
+    };
+    f64::from(major) * 100.0 + base + letter * 0.1
+}
+
+/// French-like string ordering (stands in for `localeCompare(…, 'fr')`):
+/// accents and case are ignored first, then used as tie-breakers.
+pub fn compare_fr(a: &str, b: &str) -> Ordering {
+    fold(a).cmp(&fold(b)).then_with(|| a.cmp(b))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn normalize_name_strips_accents_unifies_apostrophes_and_collapses_whitespace() {
+        assert_eq!(normalize_name("  Élan   d’Été "), "elan d'ete");
+        assert_eq!(normalize_name("Chocobo\tNoir"), "chocobo noir");
+    }
+
+    #[test]
+    fn patch_sort_key_orders_patches_numerically_with_unknown_last() {
+        assert_eq!(patch_sort_key(None), -1.0);
+        assert_eq!(patch_sort_key(Some("7.5")), 750.0);
+        assert_eq!(patch_sort_key(Some("7.51")), 751.0);
+        assert_eq!(patch_sort_key(Some("2.0")), 200.0);
+        assert_eq!(patch_sort_key(Some("3")), 300.0);
+        assert!(patch_sort_key(Some("6.5a")) > patch_sort_key(Some("6.5")));
+        assert!(patch_sort_key(Some("6.5a")) < patch_sort_key(Some("6.51")));
+    }
+
+    #[test]
+    fn patch_sort_key_treats_a_malformed_minor_as_zero_and_a_malformed_major_as_unknown() {
+        assert_eq!(patch_sort_key(Some("7.x")), 700.0);
+        assert_eq!(patch_sort_key(Some("x.5")), -1.0);
+        assert_eq!(patch_sort_key(Some("")), -1.0);
+    }
+
+    #[test]
+    fn compare_fr_ignores_accents_and_case_first() {
+        assert_eq!(compare_fr("été", "Etude"), Ordering::Less);
+        assert_eq!(compare_fr("Zèbre", "abeille"), Ordering::Greater);
+        assert_eq!(compare_fr("élan", "elan"), Ordering::Greater);
+        assert_eq!(compare_fr("same", "same"), Ordering::Equal);
+    }
+}

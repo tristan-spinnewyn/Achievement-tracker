@@ -11,6 +11,7 @@ use serde::Serialize;
 
 use crate::models::catalog::{Achievement, AchievementCategory, AchievementKind, CatalogData};
 use crate::models::collections::{collection_key, CollectionItem, CollectionsData};
+use crate::models::difficulty::AchievementDifficulty;
 use crate::models::user::UserData;
 use crate::sanitize::user_data::{parse_user_lenient, sanitize_imported_user};
 use json_file::{atomic_write, read_json, read_json_value};
@@ -26,6 +27,8 @@ pub struct Store {
     pub achievement_by_id: HashMap<u32, Achievement>,
     /// Keyed `{type}:{id}`.
     pub collection_item_by_key: HashMap<String, CollectionItem>,
+    /// Computed difficulty per achievement id (filled by the difficulty service, phase 2).
+    pub difficulties: HashMap<u32, AchievementDifficulty>,
 }
 
 impl Store {
@@ -49,6 +52,7 @@ impl Store {
             category_by_id: HashMap::new(),
             achievement_by_id: HashMap::new(),
             collection_item_by_key: HashMap::new(),
+            difficulties: HashMap::new(),
         };
         store.reindex();
         Ok(store)

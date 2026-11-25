@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createTauriApi, isTauriRuntime } from '../src/renderer/src/lib/tauriBridge'
+import { createTauriApi, isTauriRuntime, PORTED_COMMANDS } from '../src/renderer/src/lib/tauriBridge'
 
 describe('createTauriApi', () => {
   it('routes settings.get to the settings_get Tauri command', async () => {
@@ -8,14 +8,40 @@ describe('createTauriApi', () => {
     const api = createTauriApi(invoke)
 
     await expect(api.settings.get()).resolves.toBe(settings)
-    expect(invoke).toHaveBeenCalledWith('settings_get', undefined)
+    expect(invoke).toHaveBeenCalledWith('settings_get', {})
+  })
+
+  it('maps positional arguments to the named arguments of the command', async () => {
+    const invoke = vi.fn().mockResolvedValue(true)
+    const api = createTauriApi(invoke)
+
+    await api.achievements.setFocus(12, true)
+    await api.collections.setOwned('mount', 3, false)
+    await api.achievements.setNote(4, null)
+
+    expect(invoke).toHaveBeenNthCalledWith(1, 'achievements_set_focus', { id: 12, inFocus: true })
+    expect(invoke).toHaveBeenNthCalledWith(2, 'collections_set_owned', { kind: 'mount', id: 3, owned: false })
+    expect(invoke).toHaveBeenNthCalledWith(3, 'achievements_set_note', { id: 4, note: null })
+  })
+
+  it('omits arguments that were not passed', async () => {
+    const invoke = vi.fn().mockResolvedValue([])
+    await createTauriApi(invoke).achievements.list()
+    expect(invoke).toHaveBeenCalledWith('achievements_list', {})
+  })
+
+  it('supports top-level methods such as dashboard()', async () => {
+    const invoke = vi.fn().mockResolvedValue({ totalAchievements: 3 })
+    await expect(createTauriApi(invoke).dashboard()).resolves.toEqual({ totalAchievements: 3 })
+    expect(invoke).toHaveBeenCalledWith('dashboard_get', {})
   })
 
   it('rejects calls to methods that are not ported yet, naming the method', async () => {
     const invoke = vi.fn()
     const api = createTauriApi(invoke)
 
-    await expect(api.catalog.status()).rejects.toThrow('Not ported to Tauri yet: catalog.status')
+    await expect(api.lodestone.sync()).rejects.toThrow('Not ported to Tauri yet: lodestone.sync')
+    await expect(api.suggestions()).rejects.toThrow('Not ported to Tauri yet: suggestions')
     expect(invoke).not.toHaveBeenCalled()
   })
 
@@ -31,6 +57,18 @@ describe('createTauriApi', () => {
       offNested()
       offTop()
     }).not.toThrow()
+  })
+
+  it('is not mistaken for a promise when awaited', async () => {
+    const api = createTauriApi(vi.fn())
+    expect((api as unknown as { then?: unknown }).then).toBeUndefined()
+    expect((api.settings as unknown as { then?: unknown }).then).toBeUndefined()
+  })
+
+  it('maps every ported method to a snake_case command', () => {
+    for (const [path, { command }] of Object.entries(PORTED_COMMANDS)) {
+      expect(command, path).toMatch(/^[a-z]+(_[a-z]+)*$/)
+    }
   })
 })
 
