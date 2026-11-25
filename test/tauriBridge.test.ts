@@ -24,6 +24,23 @@ describe('createTauriApi', () => {
     expect(invoke).toHaveBeenNthCalledWith(3, 'achievements_set_note', { id: 4, note: null })
   })
 
+  it('routes difficulty and suggestions with their named arguments', async () => {
+    const invoke = vi.fn().mockResolvedValue([])
+    const api = createTauriApi(invoke)
+
+    await api.difficulty.get(7)
+    await api.difficulty.filter('hard')
+    await api.difficulty.sort('desc')
+    await api.suggestions({ priority: 1, points: 2, categoryProximity: 3 })
+
+    expect(invoke).toHaveBeenNthCalledWith(1, 'difficulty_get', { achievementId: 7 })
+    expect(invoke).toHaveBeenNthCalledWith(2, 'difficulty_filter', { level: 'hard' })
+    expect(invoke).toHaveBeenNthCalledWith(3, 'difficulty_sort', { direction: 'desc' })
+    expect(invoke).toHaveBeenNthCalledWith(4, 'suggestions_get', {
+      weights: { priority: 1, points: 2, categoryProximity: 3 }
+    })
+  })
+
   it('omits arguments that were not passed', async () => {
     const invoke = vi.fn().mockResolvedValue([])
     await createTauriApi(invoke).achievements.list()
@@ -41,7 +58,7 @@ describe('createTauriApi', () => {
     const api = createTauriApi(invoke)
 
     await expect(api.lodestone.sync()).rejects.toThrow('Not ported to Tauri yet: lodestone.sync')
-    await expect(api.suggestions()).rejects.toThrow('Not ported to Tauri yet: suggestions')
+    await expect(api.data.export()).rejects.toThrow('Not ported to Tauri yet: data.export')
     expect(invoke).not.toHaveBeenCalled()
   })
 

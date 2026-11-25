@@ -33,6 +33,15 @@ export const PORTED_COMMANDS: Record<string, PortedCommand> = {
 
   dashboard: cmd('dashboard_get'),
 
+  'difficulty.get': cmd('difficulty_get', 'achievementId'),
+  'difficulty.all': cmd('difficulty_all'),
+  'difficulty.stats': cmd('difficulty_stats'),
+  'difficulty.filter': cmd('difficulty_filter', 'level'),
+  'difficulty.sort': cmd('difficulty_sort', 'direction'),
+  'difficulty.weights': cmd('difficulty_weights'),
+  'difficulty.recalculate': cmd('difficulty_recalculate'),
+  suggestions: cmd('suggestions_get', 'weights'),
+
   'history.undo': cmd('history_undo'),
   'history.redo': cmd('history_redo'),
   'history.canUndo': cmd('history_can_undo'),

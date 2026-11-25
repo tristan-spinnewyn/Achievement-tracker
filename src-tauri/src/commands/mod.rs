@@ -4,6 +4,7 @@
 pub mod achievements;
 pub mod catalog;
 pub mod collections;
+pub mod difficulty;
 pub mod error;
 pub mod recurring;
 pub mod settings;
