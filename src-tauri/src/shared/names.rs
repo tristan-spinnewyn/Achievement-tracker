@@ -2,13 +2,18 @@
 
 use std::cmp::Ordering;
 
-use unicode_normalization::char::is_combining_mark;
 use unicode_normalization::UnicodeNormalization;
 
-/// Lowercase without accents (NFD, combining marks removed), for comparisons and search.
+/// Latin combining diacritics (U+0300–U+036F), the only marks the TS version removes:
+/// other scripts keep theirs (e.g. the Japanese voiced marks).
+fn is_latin_diacritic(c: char) -> bool {
+    ('\u{0300}'..='\u{036F}').contains(&c)
+}
+
+/// Lowercase without Latin accents (NFD, Latin diacritics removed), for comparisons and search.
 pub fn fold_text(text: &str) -> String {
     text.nfd()
-        .filter(|c| !is_combining_mark(*c))
+        .filter(|c| !is_latin_diacritic(*c))
         .collect::<String>()
         .to_lowercase()
 }
@@ -61,6 +66,14 @@ mod tests {
     fn normalize_name_strips_accents_unifies_apostrophes_and_collapses_whitespace() {
         assert_eq!(normalize_name("  Élan   d’Été "), "elan d'ete");
         assert_eq!(normalize_name("Chocobo\tNoir"), "chocobo noir");
+    }
+
+    #[test]
+    fn normalize_name_only_strips_latin_accents_like_the_ts_version() {
+        // NFD splits the Japanese voiced marks off but, unlike Latin accents, they are kept.
+        assert_eq!(normalize_name("ド"), "ト\u{3099}");
+        assert_eq!(normalize_name("パフィン"), "ハ\u{309a}フィン");
+        assert_ne!(normalize_name("バ"), normalize_name("ハ"));
     }
 
     #[test]

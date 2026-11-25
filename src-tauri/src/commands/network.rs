@@ -121,7 +121,10 @@ mod tests {
             .await
             .unwrap_err();
 
-        assert_eq!(serde_json::to_value(err).unwrap(), "HTTP 404");
+        assert_eq!(
+            serde_json::to_value(err).unwrap(),
+            "XIVAPI HTTP 404 (Achievement)"
+        );
         assert_eq!(t.state().store().catalog.achievements.len(), 3);
     }
 

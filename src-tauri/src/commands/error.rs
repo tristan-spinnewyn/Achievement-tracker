@@ -3,6 +3,7 @@
 use serde::Serialize;
 
 use crate::net::http::FetchError;
+use crate::net::xivapi::XivapiError;
 use crate::repo::error::RepoError;
 
 #[derive(Debug, PartialEq, Serialize)]
@@ -17,6 +18,12 @@ impl From<RepoError> for CommandError {
 
 impl From<FetchError> for CommandError {
     fn from(err: FetchError) -> Self {
+        Self(err.to_string())
+    }
+}
+
+impl From<XivapiError> for CommandError {
+    fn from(err: XivapiError) -> Self {
         Self(err.to_string())
     }
 }

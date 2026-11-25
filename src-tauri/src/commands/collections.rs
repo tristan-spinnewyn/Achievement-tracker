@@ -1,4 +1,4 @@
-//! Collection commands (Electron channels `collections:*`, except the network ones).
+//! Collection commands (Electron channels `collections:*`).
 
 use chrono::Utc;
 use tauri::State;
@@ -8,7 +8,11 @@ use crate::models::collections::{CollectionCategory, CollectionType};
 use crate::models::views::{
     CollectionFilter, CollectionItemRow, CollectionProgress, CollectionsStatus, CountsByType,
 };
+use crate::net::network::Network;
 use crate::repo::collections;
+use crate::repo::error::RepoError;
+use crate::services::collections::builder::build_collections;
+use crate::services::collections::sync::{sync_collection, CollectionSyncResult};
 use crate::state::AppState;
 
 #[tauri::command]
@@ -66,11 +70,35 @@ pub fn collections_set_owned(
     Ok(true)
 }
 
+/// Rebuilds the collections catalog from XIVAPI and FFXIV Collect; ownership is untouched.
+#[tauri::command]
+pub async fn collections_refresh(
+    state: State<'_, AppState>,
+    net: State<'_, Network>,
+) -> CommandResult<CollectionsStatus> {
+    let built = build_collections(net.inner()).await?;
+    let mut store = state.store();
+    let data = built.into_data(store.catalog.game_version.as_deref(), Utc::now());
+    store.set_collections(data).map_err(RepoError::from)?;
+    Ok(collections::collections_status(&store))
+}
+
+/// Marks owned the items the Lodestone lists for this collection.
+#[tauri::command]
+pub async fn collections_sync(
+    state: State<'_, AppState>,
+    net: State<'_, Network>,
+    kind: CollectionType,
+) -> CommandResult<CollectionSyncResult> {
+    Ok(sync_collection(&state, &net, kind, Utc::now()).await?)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::commands::test_support::sample_app;
     use crate::models::views::CollectionStatus;
+    use tauri::Manager;
     use CollectionType::Mount;
 
     #[test]
@@ -91,5 +119,70 @@ mod tests {
             patch: None,
         };
         assert_eq!(collections_list(t.state(), filter).len(), 1);
+    }
+
+    #[tokio::test]
+    async fn refresh_replaces_the_catalog_but_keeps_ownership() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("GET", mockito::Matcher::Regex("^/sheet/".into()))
+            .match_query(mockito::Matcher::Any)
+            .with_body(r#"{"rows":[]}"#)
+            .create_async()
+            .await;
+        server
+            .mock("GET", mockito::Matcher::Regex("^/collect/".into()))
+            .match_query(mockito::Matcher::Any)
+            .with_status(503)
+            .create_async()
+            .await;
+        let t = crate::commands::test_support::network_app(&server.url());
+        collections_set_owned(t.state(), Mount, 1, true).unwrap();
+        t.state().store().catalog.game_version = Some("7.5".into());
+
+        let status = collections_refresh(t.state(), t.app.state::<Network>())
+            .await
+            .unwrap();
+
+        assert!(!status.seeded);
+        let state = t.state();
+        let store = state.store();
+        assert_eq!(store.collections.game_version.as_deref(), Some("7.5"));
+        assert!(store.user.collections["mount:1"].owned);
+    }
+
+    #[tokio::test]
+    async fn a_failed_refresh_keeps_the_collections() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("GET", mockito::Matcher::Any)
+            .match_query(mockito::Matcher::Any)
+            .with_status(404)
+            .create_async()
+            .await;
+        let t = crate::commands::test_support::network_app(&server.url());
+
+        let err = collections_refresh(t.state(), t.app.state::<Network>())
+            .await
+            .unwrap_err();
+
+        assert_eq!(
+            serde_json::to_value(err).unwrap(),
+            "XIVAPI HTTP 404 (Mount)"
+        );
+        assert_eq!(t.state().store().collections.items.len(), 4);
+    }
+
+    #[tokio::test]
+    async fn sync_rejects_a_collection_not_on_the_lodestone() {
+        let t = crate::commands::test_support::network_app("http://127.0.0.1:1");
+        let result = collections_sync(
+            t.state(),
+            t.app.state::<Network>(),
+            CollectionType::Orchestrion,
+        )
+        .await
+        .unwrap();
+        assert!(!result.ok);
     }
 }

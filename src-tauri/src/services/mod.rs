@@ -1,6 +1,7 @@
 //! Business services built on the store.
 
 pub mod catalog_refresh;
+pub mod collections;
 pub mod difficulty;
 pub mod icons;
 pub mod lodestone;

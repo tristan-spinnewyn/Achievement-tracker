@@ -93,6 +93,8 @@ pub fn run() {
             commands::collections::collections_categories,
             commands::collections::collections_progress,
             commands::collections::collections_set_owned,
+            commands::collections::collections_refresh,
+            commands::collections::collections_sync,
             commands::difficulty::difficulty_get,
             commands::difficulty::difficulty_all,
             commands::difficulty::difficulty_stats,

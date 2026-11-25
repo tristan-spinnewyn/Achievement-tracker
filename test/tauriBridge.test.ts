@@ -48,10 +48,14 @@ describe('createTauriApi', () => {
     await api.catalog.refresh()
     await api.lodestone.sync()
     await api.icons.prefetch(['ui/icon/1.tex', null])
+    await api.collections.refresh()
+    await api.collections.sync('minion')
 
     expect(invoke).toHaveBeenNthCalledWith(1, 'catalog_refresh', {})
     expect(invoke).toHaveBeenNthCalledWith(2, 'lodestone_sync', {})
     expect(invoke).toHaveBeenNthCalledWith(3, 'icons_prefetch', { iconPaths: ['ui/icon/1.tex', null] })
+    expect(invoke).toHaveBeenNthCalledWith(4, 'collections_refresh', {})
+    expect(invoke).toHaveBeenNthCalledWith(5, 'collections_sync', { kind: 'minion' })
   })
 
   it('turns a cached icon path into an asset URL and keeps remote URLs', async () => {
@@ -81,7 +85,7 @@ describe('createTauriApi', () => {
     const invoke = vi.fn()
     const api = createTauriApi(invoke)
 
-    await expect(api.collections.sync('mount')).rejects.toThrow('Not ported to Tauri yet: collections.sync')
+    await expect(api.updater.check()).rejects.toThrow('Not ported to Tauri yet: updater.check')
     await expect(api.data.export()).rejects.toThrow('Not ported to Tauri yet: data.export')
     expect(invoke).not.toHaveBeenCalled()
   })

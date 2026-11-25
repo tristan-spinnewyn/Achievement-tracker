@@ -22,6 +22,24 @@ pub enum CollectionType {
 }
 
 impl CollectionType {
+    /// Name used in storage keys and messages (same as the serialized value).
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Mount => "mount",
+            Self::Minion => "minion",
+            Self::Orchestrion => "orchestrion",
+            Self::Emote => "emote",
+            Self::Fashion => "fashion",
+            Self::Hairstyle => "hairstyle",
+            Self::Barding => "barding",
+            Self::Title => "title",
+            Self::Faceaccessory => "faceaccessory",
+            Self::Spell => "spell",
+            Self::Tripletriad => "tripletriad",
+            Self::Beast => "beast",
+        }
+    }
+
     /// Every type, in the order shown by the UI.
     pub const ALL: [Self; 12] = [
         Self::Mount,
@@ -90,13 +108,19 @@ pub struct CollectionOwnership {
 
 /// Storage key of a collection item, e.g. `mount:12`.
 pub fn collection_key(kind: CollectionType, id: u32) -> String {
-    let kind = serde_json::to_value(kind).expect("CollectionType always serializes");
-    format!("{}:{id}", kind.as_str().unwrap_or_default())
+    format!("{}:{id}", kind.name())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn names_match_the_serialized_values() {
+        for kind in CollectionType::ALL {
+            assert_eq!(serde_json::to_value(kind).unwrap(), kind.name());
+        }
+    }
 
     #[test]
     fn collection_key_uses_the_serialized_type_name() {
