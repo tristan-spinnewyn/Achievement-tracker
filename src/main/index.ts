@@ -116,8 +116,6 @@ function createWindow(): void {
     backgroundColor: '#0f172a',
     title: 'FFXIV Achievement Tracker',
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
-      // The preload only uses contextBridge/ipcRenderer: sandbox-compatible.
       sandbox: true,
       contextIsolation: true,
       nodeIntegration: false,
