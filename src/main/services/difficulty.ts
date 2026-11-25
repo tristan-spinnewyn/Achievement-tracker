@@ -166,17 +166,29 @@ const SEASONAL_BONUS = 8
 // Classification constants
 // ============================================================================
 
-const DIFFICULTY_THRESHOLDS: Record<
-  DifficultyLevel,
-  { min: number; max: number; color: string; stars: string; name: string }
-> = {
-  very_easy: { min: 0, max: 20, color: '#22c55e', stars: '⭐', name: 'Très facile' },
-  easy: { min: 21, max: 40, color: '#84cc16', stars: '⭐⭐', name: 'Facile' },
-  medium: { min: 41, max: 60, color: '#eab308', stars: '⭐⭐⭐', name: 'Moyenne' },
-  hard: { min: 61, max: 80, color: '#f97316', stars: '⭐⭐⭐⭐', name: 'Difficile' },
-  very_hard: { min: 81, max: 100, color: '#ef4444', stars: '⭐⭐⭐⭐⭐', name: 'Très difficile' },
-  extreme: { min: 101, max: Infinity, color: '#1f2937', stars: '⭐⭐⭐⭐⭐⭐', name: 'Extrême' }
+interface DifficultyThreshold {
+  level: DifficultyLevel
+  /** Inclusive upper bound: the level covers (previous max, max]. */
+  max: number
+  color: string
+  stars: string
+  name: string
 }
+
+/**
+ * Ordered from easiest to hardest. Bounds are continuous (upper bounds only)
+ * so fractional scores such as 20.2 always land in a level.
+ */
+const DIFFICULTY_THRESHOLDS: readonly DifficultyThreshold[] = [
+  { level: 'very_easy', max: 20, color: '#22c55e', stars: '⭐', name: 'Très facile' },
+  { level: 'easy', max: 40, color: '#84cc16', stars: '⭐⭐', name: 'Facile' },
+  { level: 'medium', max: 60, color: '#eab308', stars: '⭐⭐⭐', name: 'Moyenne' },
+  { level: 'hard', max: 80, color: '#f97316', stars: '⭐⭐⭐⭐', name: 'Difficile' },
+  { level: 'very_hard', max: 100, color: '#ef4444', stars: '⭐⭐⭐⭐⭐', name: 'Très difficile' },
+  { level: 'extreme', max: Infinity, color: '#1f2937', stars: '⭐⭐⭐⭐⭐⭐', name: 'Extrême' }
+]
+
+const EXTREME_THRESHOLD = DIFFICULTY_THRESHOLDS[DIFFICULTY_THRESHOLDS.length - 1]
 
 const DEFAULT_WEIGHTS: DifficultyWeights = {
   kindWeights: DEFAULT_KIND_WEIGHTS,
@@ -299,28 +311,17 @@ export function calculateDifficulty(
 }
 
 /**
- * Classifies the score into a difficulty level.
+ * Classifies the score into the first level whose upper bound it does not
+ * exceed. A non-numeric score (NaN) falls back to extreme.
  */
-function classifyDifficulty(score: number): AchievementDifficulty {
-  for (const [level, threshold] of Object.entries(DIFFICULTY_THRESHOLDS)) {
-    if (score >= threshold.min && score <= threshold.max) {
-      return {
-        score: Math.round(score * 10) / 10,
-        level: level as DifficultyLevel,
-        levelName: threshold.name,
-        color: threshold.color,
-        stars: threshold.stars
-      }
-    }
-  }
-  // Fallback for extreme scores
-  const t = DIFFICULTY_THRESHOLDS.extreme
+export function classifyDifficulty(score: number): AchievementDifficulty {
+  const threshold = DIFFICULTY_THRESHOLDS.find((t) => score <= t.max) ?? EXTREME_THRESHOLD
   return {
     score: Math.round(score * 10) / 10,
-    level: 'extreme',
-    levelName: t.name,
-    color: t.color,
-    stars: t.stars
+    level: threshold.level,
+    levelName: threshold.name,
+    color: threshold.color,
+    stars: threshold.stars
   }
 }
 

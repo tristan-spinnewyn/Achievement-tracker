@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
 import type { Achievement } from '@shared/types'
 import {
   calculateDifficulty,
+  classifyDifficulty,
   calculateAllDifficulties,
   getDifficultyStats,
   filterByDifficulty,
@@ -122,6 +123,38 @@ describe('classification', () => {
     expect(d.color).toMatch(/^#/)
     expect(d.stars.length).toBeGreaterThan(0)
     expect(d.levelName.length).toBeGreaterThan(0)
+  })
+})
+
+describe('classifyDifficulty bounds', () => {
+  it.each([
+    [0, 'very_easy'],
+    [20, 'very_easy'],
+    [20.2, 'easy'],
+    [40, 'easy'],
+    [40.5, 'medium'],
+    [60.5, 'hard'],
+    [80.5, 'very_hard'],
+    [100, 'very_hard'],
+    [100.4, 'extreme'],
+    [250, 'extreme']
+  ])('classifies a score of %s as %s', (score, level) => {
+    expect(classifyDifficulty(score).level).toBe(level)
+  })
+
+  it('falls back to extreme for a non-numeric score', () => {
+    expect(classifyDifficulty(Number.NaN).level).toBe('extreme')
+  })
+
+  it('rounds the returned score to one decimal', () => {
+    expect(classifyDifficulty(20.24).score).toBe(20.2)
+  })
+
+  it('does not classify an achievement scoring between two integers as extreme', () => {
+    // 1 point (≈ 0.86) + category 64 context (65 × 0.3 = 19.5) ≈ 20.36
+    const d = calculateDifficulty(ach({ points: 1, categoryId: 64, patch: '2.0' }))
+    expect(d.score).toBe(20.4)
+    expect(d.level).toBe('easy')
   })
 })
 
