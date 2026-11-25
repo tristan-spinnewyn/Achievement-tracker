@@ -4,5 +4,6 @@ pub mod dialogs;
 pub mod navigation;
 pub mod notifier;
 pub mod setup;
+pub mod updater;
 pub mod window;
 pub mod window_bounds;

@@ -1,5 +1,5 @@
 //! Application startup: loads the state, opens the main window and starts the
-//! background work (icon prefetch, recurring task notifications).
+//! background work (icon prefetch, recurring task notifications, update check).
 
 use std::error::Error;
 use std::path::Path;
@@ -10,7 +10,9 @@ use chrono::Utc;
 use tauri::{App, AppHandle, Manager, Runtime};
 
 use super::notifier::DesktopNotifier;
+use super::updater::{start_update_check, PluginChannel};
 use super::window::create_main_window;
+use crate::commands::updater::emit_status;
 use crate::net::network::Network;
 use crate::services::icons::{IconCache, PREFETCH_CONCURRENCY};
 use crate::services::reminders::{notify_at_next_reset, notify_pending, RESET_KINDS};
@@ -57,11 +59,16 @@ pub fn setup<R: Runtime>(app: &mut App<R>) -> Result<(), Box<dyn Error>> {
     app.manage(state);
     app.manage(net);
     app.manage(icons);
-    app.manage(UpdaterState::default());
+    app.manage(UpdaterState::new(
+        app.package_info().version.to_string(),
+        Box::new(PluginChannel::new(app.handle().clone())),
+        emit_status(app.handle().clone()),
+    ));
 
     let electron_bounds = electron_data.and_then(|migration| migration.window);
     create_main_window(app.handle(), electron_bounds.as_ref())?;
     start_recurring_notifications(app.handle());
+    start_update_check(app.handle());
     Ok(())
 }
 
