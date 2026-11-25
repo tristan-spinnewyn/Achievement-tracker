@@ -3,6 +3,7 @@
 use std::io;
 use std::sync::{Mutex, MutexGuard};
 
+use crate::services::difficulty::refresh_difficulties;
 use crate::store::paths::StorePaths;
 use crate::store::Store;
 
@@ -17,9 +18,11 @@ impl AppState {
         }
     }
 
-    /// Loads the store from its files.
+    /// Loads the store from its files and computes the achievement difficulties.
     pub fn load(paths: StorePaths) -> io::Result<Self> {
-        Store::load(paths).map(Self::new)
+        let mut store = Store::load(paths)?;
+        refresh_difficulties(&mut store);
+        Ok(Self::new(store))
     }
 
     /// Exclusive access to the store. A panic in another command does not
@@ -55,6 +58,21 @@ mod tests {
         let state = AppState::load(paths(&dir)).unwrap();
 
         assert_eq!(state.store().user.settings.region, Region::Ja);
+    }
+
+    #[test]
+    fn computes_the_difficulties_of_the_loaded_catalog() {
+        let dir = tempfile::tempdir().unwrap();
+        let catalog = serde_json::json!({ "achievements": [{
+            "id": 7, "name": "Raid (ultime)", "description": "", "points": 50, "categoryId": 4,
+            "kindId": 1, "iconPath": null, "obtainable": true, "patch": "7.0"
+        }] });
+        std::fs::write(dir.path().join("catalog.json"), catalog.to_string()).unwrap();
+
+        let state = AppState::load(paths(&dir)).unwrap();
+
+        assert_eq!(state.store().difficulties.len(), 1);
+        assert!(state.store().difficulties[&7].score > 100.0);
     }
 
     #[test]
