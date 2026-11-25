@@ -66,6 +66,8 @@ export const PORTED_COMMANDS: Record<string, PortedCommand> = {
   'collections.categories': cmd('collections_categories', 'kind'),
   'collections.progress': cmd('collections_progress', 'kind'),
   'collections.setOwned': cmd('collections_set_owned', 'kind', 'id', 'owned'),
+  'collections.refresh': cmd('collections_refresh'),
+  'collections.sync': cmd('collections_sync', 'kind'),
 
   'recurring.list': cmd('recurring_list'),
   'recurring.add': cmd('recurring_add', 'input'),

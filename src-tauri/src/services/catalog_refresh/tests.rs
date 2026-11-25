@@ -127,5 +127,8 @@ async fn an_xivapi_error_aborts_the_refresh() {
 
     let result = fetch_catalog(&mock_network(&server.url()), Language::Fr, now()).await;
 
-    assert_eq!(result.unwrap_err(), FetchError::Status(404));
+    assert_eq!(
+        result.unwrap_err().to_string(),
+        "XIVAPI HTTP 404 (Achievement)"
+    );
 }
