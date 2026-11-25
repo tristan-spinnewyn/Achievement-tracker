@@ -12,6 +12,10 @@
   "app": {
     "windows": [
       {
+        "label": "main",
+        "create": false,
+        "visible": false,
+        "backgroundColor": "#0f172a",
         "title": "FFXIV Achievement Tracker",
         "width": 1400,
         "height": 900,
@@ -43,7 +47,8 @@
     "icon": ["../build/icon.ico", "../build/icon.png"],
     "resources": {
       "../resources/catalog-snapshot.json": "resources/catalog-snapshot.json",
-      "../resources/collections-snapshot.json": "resources/collections-snapshot.json"
+      "../resources/collections-snapshot.json": "resources/collections-snapshot.json",
+      "../build/icon.png": "resources/icon.png"
     },
     "windows": {
       "nsis": {

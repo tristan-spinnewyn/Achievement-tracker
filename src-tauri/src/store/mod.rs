@@ -109,6 +109,10 @@ impl Store {
         Ok(())
     }
 
+    pub fn paths(&self) -> &StorePaths {
+        &self.paths
+    }
+
     /// Replaces the user data (backup import) and saves it.
     pub fn replace_user(&mut self, user: UserData) -> io::Result<()> {
         self.user = user;

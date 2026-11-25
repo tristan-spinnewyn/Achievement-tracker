@@ -36,6 +36,11 @@ export const PORTED_COMMANDS: Record<string, PortedCommand> = {
 
   dashboard: cmd('dashboard_get'),
 
+  'data.export': cmd('data_export'),
+  'data.import': cmd('data_import'),
+  'data.autoBackupInfo': cmd('data_auto_backup_info'),
+  'data.openDocumentsFolder': cmd('data_open_documents_folder'),
+
   'difficulty.get': cmd('difficulty_get', 'achievementId'),
   'difficulty.all': cmd('difficulty_all'),
   'difficulty.stats': cmd('difficulty_stats'),
@@ -73,5 +78,17 @@ export const PORTED_COMMANDS: Record<string, PortedCommand> = {
   'recurring.add': cmd('recurring_add', 'input'),
   'recurring.delete': cmd('recurring_delete', 'id'),
   'recurring.setDone': cmd('recurring_set_done', 'id', 'done'),
-  'recurring.pending': cmd('recurring_pending')
+  'recurring.pending': cmd('recurring_pending'),
+
+  'updater.check': cmd('updater_check'),
+  'updater.download': cmd('updater_download'),
+  'updater.install': cmd('updater_install'),
+  'updater.status': cmd('updater_status'),
+  'updater.appVersion': cmd('updater_app_version')
+}
+
+/** `window.api` subscriptions and the Tauri event each one listens to. */
+export const PORTED_EVENTS: Record<string, string> = {
+  onNavigate: 'navigate-to',
+  'updater.onStatusChange': 'updater:status'
 }
