@@ -2,6 +2,7 @@
 
 use serde::Serialize;
 
+use crate::net::http::FetchError;
 use crate::repo::error::RepoError;
 
 #[derive(Debug, PartialEq, Serialize)]
@@ -10,6 +11,12 @@ pub struct CommandError(String);
 
 impl From<RepoError> for CommandError {
     fn from(err: RepoError) -> Self {
+        Self(err.to_string())
+    }
+}
+
+impl From<FetchError> for CommandError {
+    fn from(err: FetchError) -> Self {
         Self(err.to_string())
     }
 }

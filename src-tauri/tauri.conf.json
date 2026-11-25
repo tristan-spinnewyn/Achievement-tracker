@@ -30,6 +30,10 @@
         "object-src": "'none'",
         "base-uri": "'none'",
         "form-action": "'none'"
+      },
+      "assetProtocol": {
+        "enable": true,
+        "scope": []
       }
     }
   },
@@ -37,6 +41,10 @@
     "active": true,
     "targets": ["nsis"],
     "icon": ["../build/icon.ico", "../build/icon.png"],
+    "resources": {
+      "../resources/catalog-snapshot.json": "resources/catalog-snapshot.json",
+      "../resources/collections-snapshot.json": "resources/collections-snapshot.json"
+    },
     "windows": {
       "nsis": {
         "installMode": "currentUser"

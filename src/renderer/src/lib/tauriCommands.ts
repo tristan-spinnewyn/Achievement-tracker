@@ -6,12 +6,15 @@
 export interface PortedCommand {
   command: string
   params: string[]
+  /** The result may be a local file path to expose to the webview as an `asset:` URL. */
+  assetUrl?: boolean
 }
 
 const cmd = (command: string, ...params: string[]): PortedCommand => ({ command, params })
 
 export const PORTED_COMMANDS: Record<string, PortedCommand> = {
   'catalog.status': cmd('catalog_status'),
+  'catalog.refresh': cmd('catalog_refresh'),
 
   'achievements.list': cmd('achievements_list', 'filter'),
   'achievements.get': cmd('achievements_get', 'id'),
@@ -50,6 +53,10 @@ export const PORTED_COMMANDS: Record<string, PortedCommand> = {
   'settings.get': cmd('settings_get'),
   'settings.update': cmd('settings_update', 'partial'),
   'lodestone.syncLog': cmd('lodestone_sync_log'),
+  'lodestone.sync': cmd('lodestone_sync'),
+
+  'icons.getUrl': { ...cmd('icons_get_url', 'iconPath'), assetUrl: true },
+  'icons.prefetch': cmd('icons_prefetch', 'iconPaths'),
 
   'collections.status': cmd('collections_status'),
   'collections.pending': cmd('collections_pending'),

@@ -15,6 +15,11 @@ export { PORTED_COMMANDS }
 
 export type InvokeFn = (command: string, args?: Record<string, unknown>) => Promise<unknown>
 
+export interface BridgeOptions {
+  /** Turns a local file path into a URL the webview may load (Tauri `convertFileSrc`). */
+  toAssetUrl?: (path: string) => string
+}
+
 const noop = (): void => {}
 
 function isSubscription(path: string): boolean {
@@ -30,26 +35,33 @@ function namedArgs(params: string[], args: unknown[]): Record<string, unknown> {
   return named
 }
 
-function call(invoke: InvokeFn, path: string, args: unknown[]): unknown {
+/** Local paths become asset URLs; remote URLs and null are kept. */
+function toWebviewUrl(value: unknown, toAssetUrl: (path: string) => string): unknown {
+  return typeof value === 'string' && !/^https?:/.test(value) ? toAssetUrl(value) : value
+}
+
+function call(invoke: InvokeFn, options: Required<BridgeOptions>, path: string, args: unknown[]): unknown {
   if (isSubscription(path)) return noop
   const ported = PORTED_COMMANDS[path]
   if (!ported) return Promise.reject(new Error(`Not ported to Tauri yet: ${path}`))
-  return invoke(ported.command, namedArgs(ported.params, args))
+  const result = invoke(ported.command, namedArgs(ported.params, args))
+  return ported.assetUrl ? result.then((value) => toWebviewUrl(value, options.toAssetUrl)) : result
 }
 
-function createNode(invoke: InvokeFn, path: string): unknown {
+function createNode(invoke: InvokeFn, options: Required<BridgeOptions>, path: string): unknown {
   return new Proxy(noop, {
     get: (_target, prop) => {
       // Not a thenable: awaiting a namespace must not call `then` on it.
       if (typeof prop === 'symbol' || prop === 'then') return undefined
-      return createNode(invoke, path ? `${path}.${prop}` : prop)
+      return createNode(invoke, options, path ? `${path}.${prop}` : prop)
     },
-    apply: (_target, _thisArg, args: unknown[]) => call(invoke, path, args)
+    apply: (_target, _thisArg, args: unknown[]) => call(invoke, options, path, args)
   })
 }
 
-export function createTauriApi(invoke: InvokeFn): Api {
-  return createNode(invoke, '') as Api
+export function createTauriApi(invoke: InvokeFn, options: BridgeOptions = {}): Api {
+  const resolved: Required<BridgeOptions> = { toAssetUrl: options.toAssetUrl ?? ((path) => path) }
+  return createNode(invoke, resolved, '') as Api
 }
 
 export function isTauriRuntime(globalScope: object): boolean {
