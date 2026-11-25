@@ -153,6 +153,24 @@ jobs:
             "dist-artifacts/FFXIV-Achievement-Tracker-Setup-$VERSION.exe.sig" \
             dist-artifacts/latest.json
 
+      # latest.yml: the feed electron-updater reads, so the Electron apps (v2.x)
+      # download this installer, which removes the Electron app (installer hook)
+      # while the Tauri app copies its data.
+      - name: Write the Electron update feed
+        env:
+          VERSION: ${{ steps.release_info.outputs.clean_version }}
+        run: |
+          node scripts/electron-update-feed.mjs "$VERSION" \
+            "dist-artifacts/FFXIV-Achievement-Tracker-Setup-$VERSION.exe" \
+            dist-artifacts/latest.yml
+
+      # The Linux AppImage stays on v2.1.1, its last version: republishing that
+      # feed tells those apps they are up to date instead of failing to find one.
+      - name: Keep the Linux feed of v2.1.1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download v2.1.1 -R "$GITHUB_REPOSITORY" -p latest-linux.yml -D dist-artifacts
+
       - name: Generate SHA256 checksums
         working-directory: dist-artifacts
         run: |
@@ -179,6 +197,8 @@ jobs:
             dist-artifacts/*.exe
             dist-artifacts/*.exe.sig
             dist-artifacts/latest.json
+            dist-artifacts/latest.yml
+            dist-artifacts/latest-linux.yml
             dist-artifacts/SHA256SUMS.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
