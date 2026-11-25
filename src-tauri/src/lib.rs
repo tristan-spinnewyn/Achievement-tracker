@@ -1,6 +1,7 @@
 pub mod commands;
 pub mod models;
 pub mod net;
+pub mod platform;
 pub mod repo;
 pub mod sanitize;
 pub mod services;
@@ -8,60 +9,28 @@ pub mod shared;
 pub mod state;
 pub mod store;
 
-use tauri::Manager;
+use tauri_plugin_window_state::StateFlags;
 
-use net::network::Network;
-use services::icons::{IconCache, PREFETCH_CONCURRENCY};
-use services::snapshots::Snapshots;
-use state::AppState;
-use store::paths::{StorePaths, DOCUMENTS_FOLDER_NAME};
-
-/// Icons of the first catalog achievements, downloaded in the background at startup.
-const STARTUP_PREFETCH_COUNT: usize = 100;
-
-/// Application entry point: loads the state and registers the commands.
+/// Application entry point: registers the plugins and the commands, then starts.
 pub fn run() {
     tauri::Builder::default()
-        .setup(|app| {
-            let paths = StorePaths {
-                data_dir: app.path().app_data_dir()?,
-                documents_dir: app
-                    .path()
-                    .document_dir()
-                    .ok()
-                    .map(|d| d.join(DOCUMENTS_FOLDER_NAME)),
-            };
-            let snapshots = app
-                .path()
-                .resource_dir()
-                .ok()
-                .map(|dir| Snapshots::in_dir(&dir.join("resources")));
-            let icons = IconCache::in_data_dir(&paths.data_dir);
-            // The webview may load cached icons through `asset:`, and nothing else.
-            std::fs::create_dir_all(icons.dir())?;
-            app.asset_protocol_scope()
-                .allow_directory(icons.dir(), true)?;
-            let state = AppState::load(paths, snapshots.as_ref())?;
-            let startup_icons: Vec<String> = state
-                .store()
-                .catalog
-                .achievements
-                .iter()
-                .take(STARTUP_PREFETCH_COUNT)
-                .filter_map(|a| a.icon_path.clone())
-                .collect();
-            let net = Network::default();
-            let (prefetch_icons, prefetch_net) = (icons.clone(), net.clone());
-            tauri::async_runtime::spawn(async move {
-                prefetch_icons
-                    .prefetch(&prefetch_net, startup_icons, PREFETCH_CONCURRENCY)
-                    .await;
-            });
-            app.manage(state);
-            app.manage(net);
-            app.manage(icons);
-            Ok(())
-        })
+        // First, so a second launch only brings the running window to the front.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            platform::window::focus_main_window(app);
+        }))
+        .plugin(
+            tauri_plugin_window_state::Builder::default()
+                .with_state_flags(StateFlags::SIZE | StateFlags::POSITION | StateFlags::MAXIMIZED)
+                .build(),
+        )
+        .plugin(tauri_plugin_dialog::init())
+        // Links are opened from Rust (https only): no script injected in the page.
+        .plugin(
+            tauri_plugin_opener::Builder::new()
+                .open_js_links_on_click(false)
+                .build(),
+        )
+        .setup(platform::setup::setup)
         .invoke_handler(tauri::generate_handler![
             commands::achievements::achievements_list,
             commands::achievements::achievements_get,
@@ -79,6 +48,10 @@ pub fn run() {
             commands::achievements::history_redo,
             commands::achievements::history_can_undo,
             commands::achievements::history_can_redo,
+            commands::backup::data_export,
+            commands::backup::data_import,
+            commands::backup::data_auto_backup_info,
+            commands::backup::data_open_documents_folder,
             commands::catalog::catalog_status,
             commands::catalog::meta_kinds,
             commands::catalog::meta_categories,
@@ -115,6 +88,11 @@ pub fn run() {
             commands::settings::settings_get,
             commands::settings::settings_update,
             commands::settings::lodestone_sync_log,
+            commands::updater::updater_app_version,
+            commands::updater::updater_status,
+            commands::updater::updater_check,
+            commands::updater::updater_download,
+            commands::updater::updater_install,
         ])
         .run(tauri::generate_context!())
         .expect("error while running the Tauri application");

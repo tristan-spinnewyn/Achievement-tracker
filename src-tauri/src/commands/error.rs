@@ -1,5 +1,7 @@
 //! Error returned to the renderer by the commands (a plain message, like a rejected IPC call).
 
+use std::io;
+
 use serde::Serialize;
 
 use crate::net::http::FetchError;
@@ -28,6 +30,18 @@ impl From<XivapiError> for CommandError {
     }
 }
 
+impl From<io::Error> for CommandError {
+    fn from(err: io::Error) -> Self {
+        Self(err.to_string())
+    }
+}
+
+impl From<tauri_plugin_opener::Error> for CommandError {
+    fn from(err: tauri_plugin_opener::Error) -> Self {
+        Self(err.to_string())
+    }
+}
+
 pub type CommandResult<T> = Result<T, CommandError>;
 
 #[cfg(test)]
@@ -41,5 +55,7 @@ mod tests {
             serde_json::to_value(err).unwrap(),
             "invalid input: priority 9"
         );
+        let io = CommandError::from(io::Error::new(io::ErrorKind::NotFound, "no folder"));
+        assert_eq!(serde_json::to_value(io).unwrap(), "no folder");
     }
 }

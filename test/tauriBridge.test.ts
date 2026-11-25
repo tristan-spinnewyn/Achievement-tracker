@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createTauriApi, isTauriRuntime, PORTED_COMMANDS } from '../src/renderer/src/lib/tauriBridge'
+import { createTauriApi, isTauriRuntime, PORTED_COMMANDS, PORTED_EVENTS } from '../src/renderer/src/lib/tauriBridge'
 
 describe('createTauriApi', () => {
   it('routes settings.get to the settings_get Tauri command', async () => {
@@ -81,27 +81,92 @@ describe('createTauriApi', () => {
     expect(invoke).toHaveBeenCalledWith('dashboard_get', {})
   })
 
-  it('rejects calls to methods that are not ported yet, naming the method', async () => {
-    const invoke = vi.fn()
+  it('routes the backup and update commands', async () => {
+    const invoke = vi.fn().mockResolvedValue(undefined)
     const api = createTauriApi(invoke)
 
-    await expect(api.updater.check()).rejects.toThrow('Not ported to Tauri yet: updater.check')
-    await expect(api.data.export()).rejects.toThrow('Not ported to Tauri yet: data.export')
+    await api.data.export()
+    await api.data.import()
+    await api.data.autoBackupInfo()
+    await api.data.openDocumentsFolder()
+    await api.updater.check()
+    await api.updater.download()
+    await api.updater.install()
+    await api.updater.status()
+    await api.updater.appVersion()
+
+    expect(invoke.mock.calls.map(([command]) => command)).toEqual([
+      'data_export',
+      'data_import',
+      'data_auto_backup_info',
+      'data_open_documents_folder',
+      'updater_check',
+      'updater_download',
+      'updater_install',
+      'updater_status',
+      'updater_app_version'
+    ])
+  })
+
+  it('rejects calls to methods that are not ported, naming the method', async () => {
+    const invoke = vi.fn()
+    const api = createTauriApi(invoke) as unknown as { legacy: { call: () => Promise<unknown> } }
+
+    await expect(api.legacy.call()).rejects.toThrow('Not ported to Tauri yet: legacy.call')
     expect(invoke).not.toHaveBeenCalled()
   })
 
-  it('returns a no-op unsubscribe for event subscriptions, nested or top-level', () => {
-    const api = createTauriApi(vi.fn())
+  it('forwards the payloads of the Tauri events to the subscribers', async () => {
+    const handlers = new Map<string, (payload: unknown) => void>()
+    const listen = vi.fn(async (event: string, handler: (payload: unknown) => void) => {
+      handlers.set(event, handler)
+      return () => {}
+    })
+    const api = createTauriApi(vi.fn(), { listen })
+    const views: string[] = []
+    const statuses: unknown[] = []
 
-    const offNested = api.updater.onStatusChange(() => {})
-    const offTop = api.onNavigate(() => {})
+    api.onNavigate((view) => views.push(view))
+    api.updater.onStatusChange((status) => statuses.push(status))
+    await Promise.resolve()
+    handlers.get('navigate-to')?.('recurring')
+    handlers.get('updater:status')?.({ state: 'checking' })
 
-    expect(typeof offNested).toBe('function')
-    expect(typeof offTop).toBe('function')
-    expect(() => {
-      offNested()
-      offTop()
-    }).not.toThrow()
+    expect(views).toEqual(['recurring'])
+    expect(statuses).toEqual([{ state: 'checking' }])
+  })
+
+  it('stops listening on unsubscribe, even before the listener is registered', async () => {
+    const stops: string[] = []
+    const handlers: ((payload: unknown) => void)[] = []
+    const listen = vi.fn(async (event: string, handler: (payload: unknown) => void) => {
+      handlers.push(handler)
+      return () => stops.push(event)
+    })
+    const api = createTauriApi(vi.fn(), { listen })
+    const views: string[] = []
+
+    const offEarly = api.onNavigate((view) => views.push(view))
+    offEarly()
+    await Promise.resolve()
+    const offLate = api.updater.onStatusChange(() => {})
+    await Promise.resolve()
+    offLate()
+    handlers[0]('recurring')
+
+    expect(stops).toEqual(['navigate-to', 'updater:status'])
+    expect(views).toEqual([])
+  })
+
+  it('logs a subscription the webview refuses instead of throwing', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const listen = vi.fn().mockRejectedValue(new Error('event.listen not allowed'))
+    const off = createTauriApi(vi.fn(), { listen }).onNavigate(() => {})
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(warn).toHaveBeenCalledWith('Cannot listen to navigate-to:', expect.any(Error))
+    expect(off).not.toThrow()
+    warn.mockRestore()
   })
 
   it('is not mistaken for a promise when awaited', async () => {
@@ -113,6 +178,13 @@ describe('createTauriApi', () => {
   it('maps every ported method to a snake_case command', () => {
     for (const [path, { command }] of Object.entries(PORTED_COMMANDS)) {
       expect(command, path).toMatch(/^[a-z]+(_[a-z]+)*$/)
+    }
+  })
+
+  it('maps every subscription to an event name Tauri accepts', () => {
+    for (const [path, event] of Object.entries(PORTED_EVENTS)) {
+      expect(path, event).toMatch(/(^|\.)on[A-Z]/)
+      expect(event, path).toMatch(/^[a-z:-]+$/)
     }
   })
 })

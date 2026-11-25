@@ -24,12 +24,17 @@ uuid = { version = "1", features = ["v4"] }
 regex = "1"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "gzip"] }
 tokio = { version = "1", features = ["time", "sync", "rt"] }
+tauri-plugin-dialog = "2.7.3"
+tauri-plugin-opener = "2.5.5"
+tauri-plugin-single-instance = "2.4.5"
+tauri-plugin-window-state = "2.4.1"
+dunce = "1.0.5"
 
 [dev-dependencies]
 tauri = { version = "2", features = ["test"] }
 tempfile = "3"
 mockito = "1"
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "time", "sync"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "time", "sync", "test-util"] }
 
 [profile.release]
 codegen-units = 1
@@ -37,3 +42,6 @@ lto = true
 opt-level = "s"
 panic = "abort"
 strip = true
+
+[target."cfg(windows)".dependencies]
+tauri-winrt-notification = "0.8.1"

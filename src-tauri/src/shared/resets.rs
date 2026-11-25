@@ -48,6 +48,15 @@ pub fn period_start(kind: RecurringType, now: DateTime<Utc>) -> DateTime<Utc> {
     }
 }
 
+/// Next reset of a recurring task type: one period after the current start.
+pub fn next_reset(kind: RecurringType, now: DateTime<Utc>) -> DateTime<Utc> {
+    let period_days = match kind {
+        RecurringType::Weekly => 7,
+        RecurringType::Daily | RecurringType::Daily22 => 1,
+    };
+    period_start(kind, now) + Days::new(period_days)
+}
+
 /// Start of the previous period (used for streaks).
 pub fn previous_period_start(kind: RecurringType, now: DateTime<Utc>) -> DateTime<Utc> {
     period_start(kind, period_start(kind, now) - TimeDelta::milliseconds(1))
@@ -135,6 +144,19 @@ mod tests {
         assert_eq!(
             previous_period_start(Daily22, now),
             at("2026-06-17T20:00:00Z")
+        );
+    }
+
+    #[test]
+    fn next_reset_is_one_period_after_the_current_start() {
+        let now = at("2026-06-19T18:00:00Z");
+        assert_eq!(next_reset(Daily, now), at("2026-06-20T15:00:00Z"));
+        assert_eq!(next_reset(Weekly, now), at("2026-06-23T08:00:00Z"));
+        assert_eq!(next_reset(Daily22, now), at("2026-06-19T20:00:00Z"));
+        // At the reset itself, the next one is a full period away.
+        assert_eq!(
+            next_reset(Daily, at("2026-06-19T15:00:00Z")),
+            at("2026-06-20T15:00:00Z")
         );
     }
 
