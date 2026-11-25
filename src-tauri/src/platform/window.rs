@@ -6,6 +6,8 @@ use tauri::{AppHandle, Emitter, Manager, Runtime, Url, WebviewWindow, WebviewWin
 use tauri_plugin_opener::OpenerExt;
 
 use super::navigation::{browser_link, is_app_url};
+use super::window_bounds::restore_electron_bounds;
+use crate::store::electron_migration::ElectronWindowState;
 
 pub const MAIN_WINDOW: &str = "main";
 /// Event asking the renderer to show a view (payload: the view name).
@@ -21,7 +23,11 @@ fn open_in_browser<R: Runtime>(app: &AppHandle<R>, url: &Url) {
 
 /// Builds the main window (`create: false` in the config). It stays on the app pages,
 /// sends web links to the browser and refuses every web permission (camera, location…).
-pub fn create_main_window<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<WebviewWindow<R>> {
+/// `electron_bounds`: the size and position the Electron app saved, on the first launch.
+pub fn create_main_window<R: Runtime>(
+    app: &AppHandle<R>,
+    electron_bounds: Option<&ElectronWindowState>,
+) -> tauri::Result<WebviewWindow<R>> {
     let config = app
         .config()
         .app
@@ -50,7 +56,13 @@ pub fn create_main_window<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Webvi
         })
         .on_permission_request(|_webview, _kind| PermissionResponse::Deny)
         .build()?;
-    // Hidden until the window-state plugin has restored its size and position.
+    // Hidden until the window-state plugin has restored its size and position,
+    // or the bounds of the Electron app are applied.
+    if let Some(bounds) = electron_bounds {
+        if let Err(err) = restore_electron_bounds(&window, bounds) {
+            eprintln!("[window] cannot restore the Electron window bounds: {err}");
+        }
+    }
     window.show()?;
     Ok(window)
 }
@@ -88,15 +100,29 @@ mod tests {
     #[test]
     fn creates_the_main_window_shown() {
         let app = mock_app();
-        let window = create_main_window(app.handle()).unwrap();
+        let window = create_main_window(app.handle(), None).unwrap();
         assert_eq!(window.label(), MAIN_WINDOW);
+        assert!(window.is_visible().unwrap());
+    }
+
+    #[test]
+    fn creates_the_main_window_shown_with_the_electron_bounds() {
+        let app = mock_app();
+        let bounds = ElectronWindowState {
+            width: 1280.0,
+            height: 868.0,
+            x: Some(640.0),
+            y: Some(190.0),
+            maximized: false,
+        };
+        let window = create_main_window(app.handle(), Some(&bounds)).unwrap();
         assert!(window.is_visible().unwrap());
     }
 
     #[test]
     fn a_notification_click_opens_the_recurring_view() {
         let app = mock_app();
-        create_main_window(app.handle()).unwrap();
+        create_main_window(app.handle(), None).unwrap();
         let views = Arc::new(Mutex::new(Vec::new()));
         let seen = Arc::clone(&views);
         app.listen_any(NAVIGATE_EVENT, move |event| {

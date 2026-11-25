@@ -5,3 +5,4 @@ pub mod navigation;
 pub mod notifier;
 pub mod setup;
 pub mod window;
+pub mod window_bounds;

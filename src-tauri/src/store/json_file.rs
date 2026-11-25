@@ -2,7 +2,7 @@
 
 use std::fs;
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use serde::de::DeserializeOwned;
 use serde_json::Value;
@@ -22,10 +22,22 @@ pub fn read_json<T: DeserializeOwned>(path: &Path) -> Option<T> {
 
 /// Writes through a temporary file then renames it, so a crash never leaves a truncated file.
 pub fn atomic_write(path: &Path, contents: &str) -> io::Result<()> {
-    let mut tmp = path.as_os_str().to_owned();
-    tmp.push(".tmp");
+    let tmp = temporary_path(path);
     fs::write(&tmp, contents)?;
     fs::rename(&tmp, path)
+}
+
+/// Copies a file through a temporary file then renames it, like [`atomic_write`].
+pub fn atomic_copy(from: &Path, to: &Path) -> io::Result<()> {
+    let tmp = temporary_path(to);
+    fs::copy(from, &tmp)?;
+    fs::rename(&tmp, to)
+}
+
+fn temporary_path(path: &Path) -> PathBuf {
+    let mut tmp = path.as_os_str().to_owned();
+    tmp.push(".tmp");
+    tmp.into()
 }
 
 #[cfg(test)]
@@ -67,5 +79,26 @@ mod tests {
     fn atomic_write_fails_when_the_folder_does_not_exist() {
         let dir = tempfile::tempdir().unwrap();
         assert!(atomic_write(&dir.path().join("missing/x.json"), "{}").is_err());
+    }
+
+    #[test]
+    fn atomic_copy_copies_the_file_and_leaves_no_temporary_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let (from, to) = (dir.path().join("from.json"), dir.path().join("to.json"));
+        fs::write(&from, r#"{"a":1}"#).unwrap();
+
+        atomic_copy(&from, &to).unwrap();
+
+        assert_eq!(fs::read_to_string(&to).unwrap(), r#"{"a":1}"#);
+        assert_eq!(fs::read_to_string(&from).unwrap(), r#"{"a":1}"#);
+        assert_eq!(fs::read_dir(dir.path()).unwrap().count(), 2);
+    }
+
+    #[test]
+    fn atomic_copy_fails_when_the_source_is_missing() {
+        let dir = tempfile::tempdir().unwrap();
+        let to = dir.path().join("to.json");
+        assert!(atomic_copy(&dir.path().join("missing.json"), &to).is_err());
+        assert!(!to.exists());
     }
 }
