@@ -58,8 +58,7 @@ Synchronize your progress directly from your public **Lodestone** profile, plan 
 
 Download the latest release from the [Releases](https://github.com/tristan-spinnewyn/Achievement-tracker/releases) tab or build it from source:
 
-* **Setup Installer (Recommended)**: `FFXIV Achievement Tracker Setup x.y.z.exe` (includes Start Menu and desktop shortcuts).
-* **Portable Version**: `FFXIV Achievement Tracker x.y.z.exe` (standalone single executable, no installation or admin rights required).
+* **Setup Installer**: `FFXIV-Achievement-Tracker-Setup-x.y.z.exe` (per-user install, no admin rights required, with a Start Menu shortcut). The app then updates itself: it looks for a new version at launch, downloads it and installs it when you quit, or right away from the banner.
 
 ### 🔐 Verifying a download
 
@@ -119,10 +118,12 @@ npm run tauri:build
 
 `package.json` is the single source of truth for the version. `main` is protected, so the version is bumped through a pull request:
 
-1. Run the **Prepare release** workflow (Actions tab, or `gh workflow run prepare-release.yml -f bump=minor`) and pick `patch`, `minor` or `major`. It bumps `package.json` + `package-lock.json` on a `release/vX.Y.Z` branch, opens the PR and runs CI on it.
-2. Merge the PR. The **Tag release** workflow sees a version with no tag yet and starts the **Release** workflow, which builds the binaries and publishes the `vX.Y.Z` tag and GitHub Release.
+1. Run the **Prepare release** workflow (Actions tab, or `gh workflow run prepare-release.yml -f bump=minor`) and pick `patch`, `minor` or `major`. It bumps `package.json` + `package-lock.json` (and the Tauri crate version in `src-tauri/Cargo.toml` + `Cargo.lock`) on a `release/vX.Y.Z` branch, opens the PR and runs CI on it.
+2. Merge the PR. The **Tag release** workflow sees a version with no tag yet and starts the **Release** workflow, which builds the Windows installer and publishes the `vX.Y.Z` tag and GitHub Release.
 
 Do not push the tag yourself: the release would run twice. The Release workflow fails early if the tag does not match `package.json`.
+
+The installer is signed for the Tauri updater with the key stored in the `TAURI_SIGNING_PRIVATE_KEY` repository secret (its public key is `plugins.updater.pubkey` in `src-tauri/tauri.conf.json`). The release also carries `latest.json`, the feed the installed apps read through `releases/latest/download/latest.json`. Without that key, no update can be shipped to the installed apps: keep a copy of it outside GitHub.
 
 ---
 

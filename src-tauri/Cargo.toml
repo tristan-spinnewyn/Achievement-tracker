@@ -29,6 +29,7 @@ tauri-plugin-opener = "2.5.5"
 tauri-plugin-single-instance = "2.4.5"
 tauri-plugin-window-state = "2.4.1"
 dunce = "1.0.5"
+tauri-plugin-updater = "2.14.1"
 
 [dev-dependencies]
 tauri = { version = "2", features = ["test"] }

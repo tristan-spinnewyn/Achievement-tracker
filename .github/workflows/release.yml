@@ -30,21 +30,9 @@ permissions:
 
 jobs:
   build:
-    name: Build (${{ matrix.platform }})
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            platform: windows
-            build_args: '--win'
-            artifact_name: dist-windows
-          - os: ubuntu-latest
-            platform: linux
-            build_args: '--linux'
-            artifact_name: dist-linux
+    name: Build Windows installer
+    runs-on: windows-latest
+    timeout-minutes: 45
 
     steps:
       - name: Check out repository
@@ -58,12 +46,6 @@ jobs:
           node-version: 24.x
           cache: 'npm'
 
-      - name: Install Linux dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libfuse2
-
       - name: Install dependencies
         run: npm ci
 
@@ -76,28 +58,61 @@ jobs:
       - name: Run unit tests with coverage thresholds (Vitest)
         run: npm run test:coverage
 
+      # rustup is preinstalled on GitHub's Windows runners. No build cache here:
+      # a release is always built from scratch.
+      - name: Set up Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+
+      - name: Run Rust tests
+        run: npm run test:rust
+
       # package.json is the source of truth (bumped through a PR before tagging):
       # fail fast if the tag disagrees, instead of building mismatched binaries.
       - name: Check release tag matches package.json
+        id: release_info
         env:
           # Explicit input, else the pushed tag, else empty (= use package.json).
           RELEASE_TAG: ${{ inputs.tag_name || (github.ref_type == 'tag' && github.ref_name) || '' }}
         run: node scripts/release-version.mjs "$RELEASE_TAG"
         shell: bash
 
-      - name: Build and package executable
-        run: npm run dist -- ${{ matrix.build_args }} --publish never
+      # Built without the signing key: only the signing step below sees it.
+      - name: Build the Windows installer (NSIS)
+        run: npm run tauri:build
 
-      - name: Upload binaries artifact
+      - name: Name the installer like the Electron releases
+        env:
+          VERSION: ${{ steps.release_info.outputs.clean_version }}
+        run: |
+          mkdir dist
+          installers=(src-tauri/target/release/bundle/nsis/*_x64-setup.exe)
+          if [ "${#installers[@]}" -ne 1 ]; then
+            echo "::error::Expected one NSIS installer, found: ${installers[*]}"
+            exit 1
+          fi
+          cp "${installers[0]}" "dist/FFXIV-Achievement-Tracker-Setup-$VERSION.exe"
+        shell: bash
+
+      # The Tauri updater only installs a release signed with this key; the
+      # signature also carries the version (requireSignedVersion).
+      - name: Sign the installer for the updater
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+          VERSION: ${{ steps.release_info.outputs.clean_version }}
+        run: npx --no-install tauri signer sign --app-version "$VERSION" "dist/FFXIV-Achievement-Tracker-Setup-$VERSION.exe"
+        shell: bash
+
+      - name: Upload the installer artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: ${{ matrix.artifact_name }}
+          name: dist-windows
           path: |
-            release/*.exe
-            release/*.AppImage
-            release/latest*.yml
-            release/*.blockmap
-          if-no-files-found: warn
+            dist/*.exe
+            dist/*.exe.sig
+          if-no-files-found: error
           retention-days: 2
 
   publish:
@@ -116,27 +131,11 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Download all build artifacts
+      - name: Download the build artifacts
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           path: dist-artifacts
           merge-multiple: true
-
-      - name: Generate SHA256 checksums
-        working-directory: dist-artifacts
-        run: |
-          shopt -s nullglob
-          sha256sum *.exe *.AppImage > SHA256SUMS.txt
-          cat SHA256SUMS.txt
-
-      # Signed SLSA attestation (Sigstore): proves the binaries come from this
-      # workflow, on this commit. Verify with: gh attestation verify <file> -R <owner>/<repo>
-      - name: Attest build provenance
-        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
-        with:
-          subject-path: |
-            dist-artifacts/*.exe
-            dist-artifacts/*.AppImage
 
       - name: Determine tag and release name
         id: release_info
@@ -144,6 +143,28 @@ jobs:
           # Explicit input, else the pushed tag, else empty (= use package.json).
           RELEASE_TAG: ${{ inputs.tag_name || (github.ref_type == 'tag' && github.ref_name) || '' }}
         run: node scripts/release-version.mjs "$RELEASE_TAG"
+
+      # latest.json: the feed the Tauri updater reads from the latest release.
+      - name: Write the updater feed
+        env:
+          VERSION: ${{ steps.release_info.outputs.clean_version }}
+        run: |
+          node scripts/updater-manifest.mjs "$VERSION" \
+            "dist-artifacts/FFXIV-Achievement-Tracker-Setup-$VERSION.exe.sig" \
+            dist-artifacts/latest.json
+
+      - name: Generate SHA256 checksums
+        working-directory: dist-artifacts
+        run: |
+          sha256sum *.exe > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      # Signed SLSA attestation (Sigstore): proves the installer comes from this
+      # workflow, on this commit. Verify with: gh attestation verify <file> -R <owner>/<repo>
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist-artifacts/*.exe
 
       - name: Create or update GitHub Release
         uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
@@ -156,9 +177,8 @@ jobs:
           make_latest: "true"
           files: |
             dist-artifacts/*.exe
-            dist-artifacts/*.AppImage
-            dist-artifacts/latest*.yml
-            dist-artifacts/*.blockmap
+            dist-artifacts/*.exe.sig
+            dist-artifacts/latest.json
             dist-artifacts/SHA256SUMS.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

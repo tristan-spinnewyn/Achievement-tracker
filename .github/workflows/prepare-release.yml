@@ -48,6 +48,10 @@ jobs:
           BUMP: ${{ inputs.bump }}
         run: echo "tag=$(npm version "$BUMP" --no-git-tag-version)" >> "$GITHUB_OUTPUT"
 
+      # The app reads its version from package.json; the Tauri crate metadata follows.
+      - name: Bump the Tauri crate version
+        run: node scripts/sync-cargo-version.mjs
+
       - name: Push the release branch
         env:
           TAG: ${{ steps.bump.outputs.tag }}

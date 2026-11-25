@@ -24,6 +24,7 @@ pub fn run() {
                 .build(),
         )
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         // Links are opened from Rust (https only): no script injected in the page.
         .plugin(
             tauri_plugin_opener::Builder::new()
@@ -94,6 +95,11 @@ pub fn run() {
             commands::updater::updater_download,
             commands::updater::updater_install,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running the Tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building the Tauri application")
+        .run(|app, event| {
+            if let tauri::RunEvent::Exit = event {
+                platform::updater::install_update_on_exit(app);
+            }
+        });
 }
