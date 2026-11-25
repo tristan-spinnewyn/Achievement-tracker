@@ -1,10 +1,12 @@
 //! Achievement search with AND / OR / NOT operators (port of `src/main/services/search.ts`).
 //!
 //! Operators are evaluated left to right and parentheses are ignored, like the
-//! TS version. Terms match as substrings of the name, description, category and
-//! kind; the fuzzy single-term matching of FlexSearch is refined in phase 2.
+//! TS version. Accents and case are ignored, and a term matches when each of its
+//! words appears somewhere in the name, description, category or kind (so
+//! "choco" finds "Chocobo", unlike the whole-word FlexSearch index).
 
 use crate::models::views::AchievementRow;
+use crate::shared::names::fold_text;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Operator {
@@ -29,7 +31,7 @@ const OPERATORS: [(&str, Operator); 3] = [
 
 impl SearchQuery {
     pub fn parse(query: &str) -> Self {
-        let query = query.to_lowercase();
+        let query = fold_text(query);
         let query = query.trim();
         let has_operator = OPERATORS
             .iter()
@@ -78,25 +80,25 @@ impl SearchQuery {
     }
 
     pub fn matches(&self, row: &AchievementRow) -> bool {
-        let text = format!(
+        let text = fold_text(&format!(
             "{} {} {} {}",
             row.achievement.name, row.achievement.description, row.category_name, row.kind_name
-        )
-        .to_lowercase();
+        ));
+        // Every word of a term must appear somewhere in the text.
+        let found = |term: &str| term.split_whitespace().all(|word| text.contains(word));
         let Some((first, rest)) = self.terms.split_first() else {
             return true;
         };
-        rest.iter().zip(&self.operators).fold(
-            text.contains(first.as_str()),
-            |result, (term, operator)| {
-                let found = text.contains(term.as_str());
+        rest.iter()
+            .zip(&self.operators)
+            .fold(found(first), |result, (term, operator)| {
+                let found = found(term);
                 match operator {
                     Operator::And => result && found,
                     Operator::Or => result || found,
                     Operator::Not => result && !found,
                 }
-            },
-        )
+            })
     }
 }
 
@@ -138,6 +140,32 @@ mod tests {
             assert!(SearchQuery::parse(q).matches(&r), "{q} should match");
         }
         assert!(!SearchQuery::parse("dragon").matches(&r));
+    }
+
+    #[test]
+    fn ignores_accents_and_case_in_both_directions() {
+        let r = row(1, "Été radieux", "Fêter l'Ete", "Événements", "Quêtes");
+        for q in [
+            "ete",
+            "ÉTÉ",
+            "feter",
+            "evenements",
+            "quetes",
+            "fete and radieux",
+        ] {
+            assert!(SearchQuery::parse(q).matches(&r), "{q} should match");
+        }
+    }
+
+    #[test]
+    fn every_word_of_a_term_must_appear_in_any_order_and_field() {
+        let r = row(1, "Chocobo Racer", "Win a race", "Gold Saucer", "Leisure");
+        assert!(SearchQuery::parse("choco").matches(&r));
+        assert!(SearchQuery::parse("saucer chocobo").matches(&r));
+        assert!(SearchQuery::parse("racer  gold").matches(&r));
+        assert!(!SearchQuery::parse("chocobo dragon").matches(&r));
+        assert!(SearchQuery::parse("gold saucer and win").matches(&r));
+        assert!(!SearchQuery::parse("gold dragon or pvp").matches(&r));
     }
 
     #[test]

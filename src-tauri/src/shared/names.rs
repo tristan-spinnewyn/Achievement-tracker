@@ -5,8 +5,8 @@ use std::cmp::Ordering;
 use unicode_normalization::char::is_combining_mark;
 use unicode_normalization::UnicodeNormalization;
 
-/// Lowercase without accents (NFD, combining marks removed).
-fn fold(text: &str) -> String {
+/// Lowercase without accents (NFD, combining marks removed), for comparisons and search.
+pub fn fold_text(text: &str) -> String {
     text.nfd()
         .filter(|c| !is_combining_mark(*c))
         .collect::<String>()
@@ -15,7 +15,7 @@ fn fold(text: &str) -> String {
 
 /// Normalises a name for Lodestone matching: no accents, unified apostrophes, collapsed whitespace.
 pub fn normalize_name(name: &str) -> String {
-    fold(name)
+    fold_text(name)
         .replace('’', "'")
         .split_whitespace()
         .collect::<Vec<_>>()
@@ -50,7 +50,7 @@ pub fn patch_sort_key(patch: Option<&str>) -> f64 {
 /// French-like string ordering (stands in for `localeCompare(…, 'fr')`):
 /// accents and case are ignored first, then used as tie-breakers.
 pub fn compare_fr(a: &str, b: &str) -> Ordering {
-    fold(a).cmp(&fold(b)).then_with(|| a.cmp(b))
+    fold_text(a).cmp(&fold_text(b)).then_with(|| a.cmp(b))
 }
 
 #[cfg(test)]

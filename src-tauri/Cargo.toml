@@ -21,6 +21,7 @@ serde_json = "1"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 unicode-normalization = "0.1"
 uuid = { version = "1", features = ["v4"] }
+regex = "1"
 
 [dev-dependencies]
 tauri = { version = "2", features = ["test"] }
