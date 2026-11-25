@@ -1,6 +1,6 @@
 [package]
 name = "ffxiv-achievement-tracker"
-version = "2.1.1"
+version = "3.0.0"
 description = "FFXIV achievement tracker (Tauri backend)"
 authors = ["shin"]
 license = "MIT"
