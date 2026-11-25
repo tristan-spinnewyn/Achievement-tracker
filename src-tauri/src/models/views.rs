@@ -203,6 +203,17 @@ pub struct CollectionsStatus {
     pub game_version: Option<String>,
 }
 
+/// Outcome of a Lodestone achievements sync.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncResult {
+    pub ok: bool,
+    pub newly_completed: u32,
+    pub total_completed: u32,
+    pub message: String,
+    pub at: String,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize)]
 pub struct PendingRecurring {
     pub daily: u32,

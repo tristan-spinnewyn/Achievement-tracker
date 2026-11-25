@@ -6,6 +6,7 @@ pub mod catalog;
 pub mod collections;
 pub mod difficulty;
 pub mod error;
+pub mod network;
 pub mod recurring;
 pub mod settings;
 

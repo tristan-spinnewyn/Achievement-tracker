@@ -21,6 +21,31 @@ pub enum Language {
     Ja,
 }
 
+impl Region {
+    /// Regional Lodestone subdomain (the content is the same everywhere).
+    pub fn lodestone_host(self) -> &'static str {
+        match self {
+            Self::Na => "na",
+            Self::Eu => "eu",
+            Self::Fr => "fr",
+            Self::De => "de",
+            Self::Ja => "jp",
+        }
+    }
+}
+
+impl Language {
+    /// Language code expected by XIVAPI.
+    pub fn code(self) -> &'static str {
+        match self {
+            Self::Fr => "fr",
+            Self::En => "en",
+            Self::De => "de",
+            Self::Ja => "ja",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Theme {
@@ -72,5 +97,28 @@ impl Default for Settings {
             suggestion_weights: SuggestionWeights::default(),
             auto_backup_documents: true,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn regions_map_to_their_lodestone_subdomain() {
+        let hosts: Vec<_> = [Region::Na, Region::Eu, Region::Fr, Region::De, Region::Ja]
+            .into_iter()
+            .map(Region::lodestone_host)
+            .collect();
+        assert_eq!(hosts, ["na", "eu", "fr", "de", "jp"]);
+    }
+
+    #[test]
+    fn languages_map_to_their_xivapi_code() {
+        let codes: Vec<_> = [Language::Fr, Language::En, Language::De, Language::Ja]
+            .into_iter()
+            .map(Language::code)
+            .collect();
+        assert_eq!(codes, ["fr", "en", "de", "ja"]);
     }
 }

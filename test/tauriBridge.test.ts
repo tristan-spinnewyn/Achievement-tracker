@@ -41,6 +41,30 @@ describe('createTauriApi', () => {
     })
   })
 
+  it('routes the network commands', async () => {
+    const invoke = vi.fn().mockResolvedValue(undefined)
+    const api = createTauriApi(invoke)
+
+    await api.catalog.refresh()
+    await api.lodestone.sync()
+    await api.icons.prefetch(['ui/icon/1.tex', null])
+
+    expect(invoke).toHaveBeenNthCalledWith(1, 'catalog_refresh', {})
+    expect(invoke).toHaveBeenNthCalledWith(2, 'lodestone_sync', {})
+    expect(invoke).toHaveBeenNthCalledWith(3, 'icons_prefetch', { iconPaths: ['ui/icon/1.tex', null] })
+  })
+
+  it('turns a cached icon path into an asset URL and keeps remote URLs', async () => {
+    const toAssetUrl = (path: string): string => `asset-url:${path}`
+    const local = createTauriApi(vi.fn().mockResolvedValue('C:/cache/ui_icon_1.tex'), { toAssetUrl })
+    const remote = createTauriApi(vi.fn().mockResolvedValue('https://v2.xivapi.com/api/asset?path=x'), { toAssetUrl })
+    const missing = createTauriApi(vi.fn().mockResolvedValue(null), { toAssetUrl })
+
+    await expect(local.icons.getUrl('ui/icon/1.tex')).resolves.toBe('asset-url:C:/cache/ui_icon_1.tex')
+    await expect(remote.icons.getUrl('x')).resolves.toBe('https://v2.xivapi.com/api/asset?path=x')
+    await expect(missing.icons.getUrl(null)).resolves.toBeNull()
+  })
+
   it('omits arguments that were not passed', async () => {
     const invoke = vi.fn().mockResolvedValue([])
     await createTauriApi(invoke).achievements.list()
@@ -57,7 +81,7 @@ describe('createTauriApi', () => {
     const invoke = vi.fn()
     const api = createTauriApi(invoke)
 
-    await expect(api.lodestone.sync()).rejects.toThrow('Not ported to Tauri yet: lodestone.sync')
+    await expect(api.collections.sync('mount')).rejects.toThrow('Not ported to Tauri yet: collections.sync')
     await expect(api.data.export()).rejects.toThrow('Not ported to Tauri yet: data.export')
     expect(invoke).not.toHaveBeenCalled()
   })
