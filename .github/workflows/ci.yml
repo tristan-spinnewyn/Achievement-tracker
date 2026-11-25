@@ -69,19 +69,13 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
-      - name: Build and package Windows executable (.exe)
-        run: npm run dist -- --publish never
+      # The renderer only talks to the Tauri backend now: the Windows installer
+      # is built by the Tauri job below, this checks that the front-end bundles.
+      - name: Build the renderer (Tauri front-end)
+        run: npm run tauri:renderer:build
 
-      - name: Upload Windows Executable Artifacts (.exe)
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: FFXIV-Achievement-Tracker-Windows
-          path: release/*.exe
-          if-no-files-found: error
-          retention-days: 14
-
-  # Tauri migration (phase 0 spike): Rust backend tests, coverage and installer build.
-  # Not a required check yet: the Electron build above stays the shipped app.
+  # Tauri app: Rust backend tests, coverage and the Windows installer (NSIS).
+  # Not a required check of main's branch protection yet.
   tauri:
     name: Tauri spike (Rust tests & Windows build)
     runs-on: windows-latest

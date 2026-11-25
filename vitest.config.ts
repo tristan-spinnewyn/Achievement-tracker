@@ -10,7 +10,7 @@ const alias = {
 
 /**
  * Two projects:
- * - `node`: main process / preload / pure renderer logic (`*.test.ts`).
+ * - `node`: main process / pure renderer logic (`*.test.ts`).
  *   `electron` is stubbed: these modules import it transitively (via store.ts)
  *   but do not use it in the tested code.
  * - `react`: React components and views in jsdom (`*.test.tsx`), with
@@ -46,7 +46,6 @@ export default defineConfig({
       // by the tests and the global percentage is artificially inflated.
       include: [
         'src/main/**/*.ts',
-        'src/preload/**/*.ts',
         'src/shared/**/*.ts',
         'src/renderer/src/**/*.{ts,tsx}'
       ],

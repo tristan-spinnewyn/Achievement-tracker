@@ -89,6 +89,7 @@ gh attestation verify FFXIV-Achievement-Tracker-Setup-x.y.z.exe -R tristan-spinn
 ### Prerequisites
 - [Node.js](https://nodejs.org/) (version 20+ recommended)
 - npm or pnpm
+- [Rust](https://www.rust-lang.org/tools/install) (stable) and the [Tauri prerequisites](https://tauri.app/start/prerequisites/) for Windows
 
 ### Common Commands
 
@@ -96,22 +97,22 @@ gh attestation verify FFXIV-Achievement-Tracker-Setup-x.y.z.exe -R tristan-spinn
 # Install dependencies
 npm install
 
-# Start development app with Hot-Reload (Vite + Electron)
-npm run dev
+# Start development app with Hot-Reload (Vite + Tauri)
+npm run tauri:dev
 
-# Run TypeScript typechecks (Main, Preload, Renderer)
+# Run TypeScript typechecks
 npm run typecheck
 
-# Run test suite (Vitest)
+# Run test suites (Vitest, then the Rust backend)
 npm test
+npm run test:rust
 
 # Build data catalogs from XIVAPI & FFXIV Collect
 npm run build:catalog        # Rebuild achievement catalog
 npm run build:collections    # Rebuild collections & beastmaster bestiary
 
-# Package production executables for Windows
-npm run dist:dir             # Unpacked application (release/win-unpacked/)
-npm run dist                 # NSIS installer + portable executable (release/)
+# Package the Windows installer (src-tauri/target/release/bundle/nsis/)
+npm run tauri:build
 ```
 
 ### Releasing

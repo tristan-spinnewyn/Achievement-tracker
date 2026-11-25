@@ -27,7 +27,7 @@ function App() {
     init()
   }, [init])
 
-  // Listen for navigation messages from the main process (via the preload bridge)
+  // Listen for navigation requests from the backend (e.g. a click on a notification)
   useEffect(() => {
     const unsubscribe = window.api.onNavigate((targetView) => {
       setView(targetView as View)
