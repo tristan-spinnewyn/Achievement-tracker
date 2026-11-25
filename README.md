@@ -60,6 +60,15 @@ Download the latest release from the [Releases](https://github.com/tristan-spinn
 
 * **Setup Installer**: `FFXIV-Achievement-Tracker-Setup-x.y.z.exe` (per-user install, no admin rights required, with a Start Menu shortcut). The app then updates itself: it looks for a new version at launch, downloads it and installs it when you quit, or right away from the banner.
 
+### ⬆️ Upgrading from 2.x
+
+Version 3 is a rewrite of the app with Tauri (smaller and lighter than the Electron 2.x app). An installed 2.x app updates itself to it like to any other version. You can also run the 3.x installer by hand. Either way:
+
+* the installer removes the 2.x app, and its shortcuts now open the new one;
+* your progress, catalog, collections and window position are taken over on the first launch. The 2.x data folder (`%APPDATA%\ffxiv-achievement-tracker`) is left untouched.
+
+The portable and Linux (AppImage) versions stop at 2.1.1.
+
 ### 🔐 Verifying a download
 
 Each release ships a `SHA256SUMS.txt` file and a signed [build provenance attestation](https://docs.github.com/en/actions/security-for-github-actions/using-artifact-attestations) proving the binaries were built by this repository's release workflow:

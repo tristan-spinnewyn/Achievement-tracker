@@ -132,6 +132,44 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  # Installs the last Electron release, then updates it to the Tauri installer
+  # built above, the way electron-updater does: the Electron app must be removed,
+  # its data kept and copied by the Tauri app on its first launch.
+  migration:
+    name: Electron to Tauri migration (Windows)
+    needs: tauri
+    runs-on: windows-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      attestations: read # verify the provenance of the Electron installer
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download the Tauri installer
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: FFXIV-Achievement-Tracker-Tauri-Windows
+          path: tauri-installer
+
+      - name: Download the Electron v2.1.1 installer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download v2.1.1 -R "$env:GITHUB_REPOSITORY" -p 'FFXIV-Achievement-Tracker-Setup-2.1.1.exe' -D electron-installer
+          gh attestation verify electron-installer/FFXIV-Achievement-Tracker-Setup-2.1.1.exe -R "$env:GITHUB_REPOSITORY"
+
+      - name: Install v2.1.1, then update it to the Tauri app
+        run: |
+          $tauriInstaller = (Get-ChildItem tauri-installer -Filter '*-setup.exe' | Select-Object -First 1).FullName
+          ./.github/scripts/test-electron-migration.ps1 `
+            -ElectronInstaller (Resolve-Path electron-installer/FFXIV-Achievement-Tracker-Setup-2.1.1.exe).Path `
+            -TauriInstaller $tauriInstaller
+
   supply-chain:
     name: Supply-chain checks
     runs-on: ubuntu-latest
