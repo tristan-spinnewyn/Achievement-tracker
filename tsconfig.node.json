@@ -15,9 +15,7 @@
     "types": ["node"]
   },
   "include": [
-    "src/main/**/*",
     "src/shared/**/*",
-    "scripts/**/*",
-    "electron.vite.config.ts"
+    "scripts/**/*"
   ]
 }

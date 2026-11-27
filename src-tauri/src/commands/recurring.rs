@@ -1,4 +1,4 @@
-//! Recurring task commands (Electron channels `recurring:*`).
+//! Recurring task commands.
 
 use chrono::Utc;
 use tauri::State;

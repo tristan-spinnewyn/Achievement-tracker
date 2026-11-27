@@ -1,4 +1,4 @@
-//! Catalog metadata commands (Electron channels `catalog:status`, `meta:*`).
+//! Catalog status and metadata commands.
 
 use tauri::State;
 

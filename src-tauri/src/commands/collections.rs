@@ -1,4 +1,4 @@
-//! Collection commands (Electron channels `collections:*`).
+//! Collection commands.
 
 use chrono::Utc;
 use tauri::State;

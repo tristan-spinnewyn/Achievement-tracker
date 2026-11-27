@@ -1,9 +1,9 @@
-//! Achievement search with AND / OR / NOT operators (port of `src/main/services/search.ts`).
+//! Achievement search with AND / OR / NOT operators.
 //!
-//! Operators are evaluated left to right and parentheses are ignored, like the
-//! TS version. Accents and case are ignored, and a term matches when each of its
-//! words appears somewhere in the name, description, category or kind (so
-//! "choco" finds "Chocobo", unlike the whole-word FlexSearch index).
+//! Operators are evaluated left to right and parentheses are ignored. Accents
+//! and case are ignored, and a term matches when each of its words appears
+//! somewhere in the name, description, category or kind (so "choco" finds
+//! "Chocobo").
 
 use crate::models::views::AchievementRow;
 use crate::shared::names::fold_text;

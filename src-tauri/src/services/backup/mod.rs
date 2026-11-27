@@ -1,4 +1,4 @@
-//! Backup export/import and the Documents mirror (port of `src/main/services/backup.ts`).
+//! Backup export/import and the Documents mirror.
 
 use std::fs;
 use std::future::Future;

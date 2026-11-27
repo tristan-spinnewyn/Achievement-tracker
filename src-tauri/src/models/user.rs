@@ -1,4 +1,4 @@
-//! User data (`userdata.json`), mirroring `UserData` in `src/main/data/store.ts`.
+//! User data (`userdata.json`).
 
 use std::collections::BTreeMap;
 

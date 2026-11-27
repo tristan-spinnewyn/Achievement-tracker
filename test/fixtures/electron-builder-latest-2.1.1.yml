@@ -1,0 +1,8 @@
+version: 2.1.1
+files:
+  - url: FFXIV-Achievement-Tracker-Setup-2.1.1.exe
+    sha512: s6AeOSi4IILdOUPyK8aOLVobeuQ5/TIJjhsfiKesBXA3xYzwBDKLU7A5mBETMPStMo9He/LMY9Coyxws8XaTSw==
+    size: 122837947
+path: FFXIV-Achievement-Tracker-Setup-2.1.1.exe
+sha512: s6AeOSi4IILdOUPyK8aOLVobeuQ5/TIJjhsfiKesBXA3xYzwBDKLU7A5mBETMPStMo9He/LMY9Coyxws8XaTSw==
+releaseDate: '2026-10-29T12:16:36.371Z'

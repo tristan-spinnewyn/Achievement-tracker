@@ -1,4 +1,4 @@
-//! In-memory data store persisted as JSON files (port of `src/main/data/store.ts`).
+//! In-memory data store persisted as JSON files.
 
 pub mod electron_migration;
 pub mod json_file;

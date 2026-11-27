@@ -1,4 +1,4 @@
-//! Lodestone achievements sync (port of `src/main/services/lodestone.ts`).
+//! Lodestone achievements sync.
 //!
 //! The Lodestone only lists obtained achievements, page by page. The HTML
 //! selectors are centralised in `parse_page`: adjust them if the site changes.

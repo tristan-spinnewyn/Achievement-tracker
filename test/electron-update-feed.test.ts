@@ -1,9 +1,8 @@
 import { createHash } from 'node:crypto'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { findFile, parseUpdateInfo, resolveFiles } from 'electron-updater/out/providers/Provider'
 import { buildElectronUpdateFeed, fileDigest } from '../scripts/electron-update-feed.mjs'
 
 const SHA512 = createHash('sha512').update('Tauri installer').digest('base64')
@@ -32,22 +31,20 @@ describe('buildElectronUpdateFeed', () => {
     )
   })
 
-  // What the Electron apps (v2.x) do with the feed of the latest GitHub release.
-  it('is read by electron-updater as the Tauri installer of the release', () => {
-    const feed = buildElectronUpdateFeed(feedInput)
-    const info = parseUpdateInfo(feed, 'latest.yml', new URL('https://github.com/x/latest.yml'))
-    const files = resolveFiles(
-      { ...info, tag: 'v3.0.0' } as typeof info,
-      new URL('https://github.com'),
-      (p) => `/tristan-spinnewyn/Achievement-tracker/releases/download/v3.0.0/${p.replace(/ /g, '-')}`
-    )
-    const installer = findFile(files, 'exe')
+  // The Electron apps (v2.x) read this feed with electron-updater: it must keep
+  // the exact format electron-builder published, here the v2.1.1 release feed.
+  it('reproduces the feed electron-builder published for v2.1.1', () => {
+    const published = readFileSync(join(__dirname, 'fixtures/electron-builder-latest-2.1.1.yml'), 'utf8')
 
-    expect(info.version).toBe('3.0.0')
-    expect(installer?.url.href).toBe(
-      'https://github.com/tristan-spinnewyn/Achievement-tracker/releases/download/v3.0.0/FFXIV-Achievement-Tracker-Setup-3.0.0.exe'
-    )
-    expect(installer?.info).toMatchObject({ sha512: SHA512, size: 4_200_000 })
+    const rebuilt = buildElectronUpdateFeed({
+      version: '2.1.1',
+      fileName: 'FFXIV-Achievement-Tracker-Setup-2.1.1.exe',
+      sha512: 's6AeOSi4IILdOUPyK8aOLVobeuQ5/TIJjhsfiKesBXA3xYzwBDKLU7A5mBETMPStMo9He/LMY9Coyxws8XaTSw==',
+      size: 122_837_947,
+      releaseDate: new Date('2026-10-29T12:16:36.371Z')
+    })
+
+    expect(rebuilt).toBe(published.replace(/\r\n/g, '\n'))
   })
 
   it('rejects a version that is not semver', () => {

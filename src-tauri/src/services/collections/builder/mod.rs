@@ -1,5 +1,4 @@
-//! Builds the collections catalog from XIVAPI v2 and FFXIV Collect
-//! (port of `src/main/services/collectionsBuilder.ts`).
+//! Builds the collections catalog from XIVAPI v2 and FFXIV Collect.
 
 mod collect;
 mod special;

@@ -1,4 +1,4 @@
-//! Local cache of the FFXIV icons downloaded from XIVAPI (port of `src/main/utils/icons.ts`).
+//! Local cache of the FFXIV icons downloaded from XIVAPI.
 //!
 //! Only paths accepted by `is_safe_icon_path` are used: they become cache file
 //! names and query parameters, so they must never escape the cache folder.
