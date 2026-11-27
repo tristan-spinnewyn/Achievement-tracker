@@ -1,5 +1,5 @@
 //! What the app window may load: only its own pages; links to the web open in
-//! the browser (port of `will-navigate` / `setWindowOpenHandler` in `src/main/index.ts`).
+//! the browser.
 
 use tauri::Url;
 

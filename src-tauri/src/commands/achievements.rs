@@ -1,4 +1,4 @@
-//! Achievement commands (Electron channels `achievements:*`, `dashboard:get`, `history:*`).
+//! Achievement, dashboard and undo/redo history commands.
 
 use chrono::Utc;
 use tauri::State;

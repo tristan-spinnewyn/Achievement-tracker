@@ -1,5 +1,5 @@
-//! Update commands (Electron channels `updater:*`). The flow itself lives in
-//! `services::updater`; every status change is sent to the renderer.
+//! Update commands. The flow itself lives in `services::updater`; every
+//! status change is sent to the renderer.
 
 use tauri::{AppHandle, Emitter, Manager, Runtime, State};
 

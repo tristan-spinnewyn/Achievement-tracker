@@ -1,5 +1,4 @@
-//! Notifications about the recurring tasks, at startup and at each FFXIV reset
-//! (port of `showPendingRecurringNotification` and `src/main/services/reminders.ts`).
+//! Notifications about the recurring tasks, at startup and at each FFXIV reset.
 
 use std::time::Duration;
 

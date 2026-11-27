@@ -1,4 +1,4 @@
-//! Settings commands (Electron channels `settings:*`, `lodestone:syncLog`).
+//! Settings and sync log commands.
 
 use serde_json::Value;
 use tauri::State;

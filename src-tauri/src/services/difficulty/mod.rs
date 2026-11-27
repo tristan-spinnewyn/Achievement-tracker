@@ -1,4 +1,4 @@
-//! Achievement difficulty score (port of `src/main/services/difficulty.ts`).
+//! Achievement difficulty score.
 //!
 //! Bounded additive model: points + content tier + grind + challenge
 //! + context (kind/category) + recency + seasonal, each component capped.

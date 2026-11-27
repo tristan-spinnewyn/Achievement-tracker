@@ -1,4 +1,4 @@
-//! Backup commands (Electron channels `data:*`).
+//! Backup export/import commands.
 
 use chrono::Utc;
 use tauri::{AppHandle, Runtime, State};

@@ -1,5 +1,4 @@
-//! "What to do next" heuristic over achievements not obtained yet
-//! (port of `src/main/services/suggestions.ts`).
+//! "What to do next" heuristic over achievements not obtained yet.
 //!
 //! The Lodestone does not expose partial progress, so the score combines the
 //! manual priority, the point value and how close the category is to completion.

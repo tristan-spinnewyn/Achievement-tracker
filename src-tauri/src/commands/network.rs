@@ -1,4 +1,4 @@
-//! Network commands (Electron channels `catalog:refresh`, `lodestone:sync`, `icons:*`).
+//! Network commands: catalog refresh, Lodestone sync and icons.
 //!
 //! The store lock is never held while waiting for the network.
 

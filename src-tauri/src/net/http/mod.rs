@@ -1,4 +1,4 @@
-//! HTTP GET with retries and exponential backoff (port of `src/main/utils/fetch.ts`).
+//! HTTP GET with retries and exponential backoff.
 //!
 //! Network errors, 5xx and 429 are retried; any other status is returned to
 //! the caller, which decides what a 404 means.

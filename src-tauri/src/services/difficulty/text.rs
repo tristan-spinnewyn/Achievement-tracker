@@ -1,5 +1,5 @@
 //! Text signals of the difficulty score, read from the lowercased name and
-//! description (French and English), ported from `src/main/services/difficulty.ts`.
+//! description (French and English).
 
 use std::sync::LazyLock;
 

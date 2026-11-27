@@ -1,4 +1,4 @@
-//! Difficulty and suggestion commands (Electron channels `difficulty:*`, `suggestions:get`).
+//! Difficulty and suggestion commands.
 
 use tauri::State;
 

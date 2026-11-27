@@ -25,7 +25,7 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
-      # Major version bumps (Electron, Vite, React…) often change the
+      # Major version bumps (Tauri, Vite, React…) often change the
       # behaviour or the security surface: human review required.
       - name: Approve and enable auto-merge (patch / minor only)
         if: steps.metadata.outputs.update-type != 'version-update:semver-major'

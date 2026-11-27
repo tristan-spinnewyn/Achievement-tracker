@@ -2,7 +2,8 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue.svg)](https://www.typescriptlang.org/)
-[![Electron](https://img.shields.io/badge/Electron-42.4-47848F.svg)](https://www.electronjs.org/)
+[![Tauri](https://img.shields.io/badge/Tauri-2-24C8DB.svg)](https://tauri.app/)
+[![Rust](https://img.shields.io/badge/Rust-stable-B7410E.svg)](https://www.rust-lang.org/)
 [![React](https://img.shields.io/badge/React-18-61DAFB.svg)](https://react.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-3.4-38B2AC.svg)](https://tailwindcss.com/)
 [![Vitest](https://img.shields.io/badge/Tests-59%20passed-green.svg)](https://vitest.dev/)
@@ -19,7 +20,7 @@ Synchronize your progress directly from your public **Lodestone** profile, plan 
 ### 🏆 Achievement Tracking & Smart Suggestions
 - **Comprehensive Catalog**: Over 4,000 achievements updated with official XIVAPI v2 data.
 - **One-Click Lodestone Sync**: Automatically import all unlocked achievements and completion timestamps from your Lodestone character profile.
-- **Virtualized Master Table**: Instant fuzzy search (*FlexSearch*), multi-criteria filters (category, patch, status, points, obtainability), and high-performance scrolling across thousands of entries.
+- **Virtualized Master Table**: Instant search (accent-insensitive, with `AND` / `OR` / `NOT`), multi-criteria filters (category, patch, status, points, obtainability), and high-performance scrolling across thousands of entries.
 - **Intelligent Difficulty Scoring**: Automatic heuristic rating based on content type (Ultimates, Savages, Extremes, relic grinds, PvP ranks, seasonal events) with visual badges and custom sorting.
 - **Smart Suggestions**: Adaptive recommendation engine highlighting accessible, high-reward achievements tailored to your preferences.
 
@@ -138,14 +139,14 @@ The installer is signed for the Tauri updater with the key stored in the `TAURI_
 
 ## 🏗️ Tech Stack
 
-- **Framework**: [Electron 42](https://www.electronjs.org/) + [electron-vite](https://electron-vite.org/)
+- **Framework**: [Tauri 2](https://tauri.app/), with a [Rust](https://www.rust-lang.org/) backend (data, Lodestone sync, catalogs, updates) and a [Vite](https://vite.dev/) front-end
 - **Frontend / UI**: [React 18](https://react.dev/), [TypeScript](https://www.typescriptlang.org/), [Tailwind CSS](https://tailwindcss.com/)
 - **State Management**: [Zustand](https://github.com/pmndrs/zustand)
 - **Tables & Virtualization**: [@tanstack/react-table](https://tanstack.com/table) & [@tanstack/react-virtual](https://tanstack.com/virtual)
 - **Drag and Drop**: [@dnd-kit](https://dndkit.com/)
-- **Search Engine**: [FlexSearch](https://github.com/nextapps-de/flexsearch)
-- **Unit Testing**: [Vitest](https://vitest.dev/)
-- **Data Persistence**: Atomic local JSON files (`userData` + automatic `Documents` mirror)
+- **Search Engine**: accent-insensitive search with `AND` / `OR` / `NOT`, in the Rust backend
+- **Unit Testing**: [Vitest](https://vitest.dev/) for the front-end, `cargo test` with [cargo-llvm-cov](https://github.com/taiki-e/cargo-llvm-cov) for the backend
+- **Data Persistence**: Atomic local JSON files (app data folder + automatic `Documents` mirror)
 
 ---
 

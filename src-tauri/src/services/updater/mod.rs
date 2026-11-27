@@ -1,5 +1,5 @@
-//! Update flow (port of `src/main/services/updater.ts`): looks for a new
-//! version, downloads it and installs it, reporting every step to the renderer.
+//! Update flow: looks for a new version, downloads it and installs it,
+//! reporting every step to the renderer.
 
 pub mod progress;
 #[cfg(test)]

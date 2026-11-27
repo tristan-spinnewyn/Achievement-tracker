@@ -1,4 +1,4 @@
-//! Data access layer, split by domain (port of `src/main/data/repo`).
+//! Data access layer, split by domain.
 
 pub mod achievements;
 pub mod catalog;

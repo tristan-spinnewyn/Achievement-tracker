@@ -1,5 +1,4 @@
-//! Lodestone sync of the collections (port of `syncCollection` in
-//! `src/main/services/collectionsSync.ts`).
+//! Lodestone sync of the collections.
 //!
 //! A collection page only lists tooltip hashes; each hash is resolved once to
 //! an item name and cached (the hash is global and stable), so re-syncs only
